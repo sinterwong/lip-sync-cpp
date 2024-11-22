@@ -7,6 +7,7 @@ LOAD_GTEST()
 LOAD_OPENCV()
 LOAD_SNDFINE()
 LOAD_KISSFFT()
+LOAD_ONNXRUNTIME()
 
 INCLUDE_DIRECTORIES(
     ${PROJECT_INCLUDE_DIR}
@@ -14,10 +15,12 @@ INCLUDE_DIRECTORIES(
 )
 
 LINK_LIBRARIES(
+    infer
     fbank
     module_logger
     SndFile::sndfile
     kissfft::kissfft
+    onnxruntime::onnxruntime
     opencv::opencv
     gflags::gflags
     gtest::gtest
@@ -30,7 +33,7 @@ FILE(GLOB_RECURSE APP_SOURCES *.cc)
 MESSAGE(STATUS "APP SOURCES: ${APP_SOURCES}")
 FOREACH(sourcefile ${APP_SOURCES})
     STRING(REGEX MATCH "[^/]+$" sourcefilewithoutpath ${sourcefile})
-    STRING(REPLACE ".cpp" "" testname ${sourcefilewithoutpath})
+    STRING(REPLACE ".cc" "" testname ${sourcefilewithoutpath})
     ADD_EXECUTABLE( ${testname} ${sourcefile})
     
     INSTALL(TARGETS ${testname} DESTINATION tests)

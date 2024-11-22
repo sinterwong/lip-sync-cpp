@@ -1,9 +1,9 @@
 /**
- * @file test_calc_fbank.cc
+ * @file test_wenet_encoder.cc
  * @author Sinter Wong (sintercver@gmail.com)
  * @brief
  * @version 0.1
- * @date 2024-11-21
+ * @date 2024-11-22
  *
  * @copyright Copyright (c) 2024
  *
@@ -11,6 +11,8 @@
 #include <gtest/gtest.h>
 
 #include "audio/fbank.hpp"
+#include "infer/types.hpp"
+#include "infer/wenet_encoder.hpp"
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
 #include <sndfile.h>
@@ -19,17 +21,19 @@
 
 namespace fs = std::filesystem;
 using namespace lip_sync::audio;
+using namespace lip_sync::infer;
 
-class LipSyncTest : public ::testing::Test {
+class InferTest : public ::testing::Test {
 protected:
   void SetUp() override {}
   void TearDown() override {}
 
-  fs::path dataDir = fs::path("data/lip_sync");
-
+  fs::path dataDir = fs::path("data");
   fs::path audioPath = dataDir / "test.wav";
-
   fs::path imagePath = dataDir / "image.jpg";
+
+  fs::path modelDir = fs::path("models");
+  fs::path wenetEncoderPath = modelDir / "wenet_encoder.onnx";
 };
 
 std::vector<float> readAudioFile(std::string const &filePath) {
@@ -68,8 +72,8 @@ std::vector<float> preprocessAudio(const std::vector<float> &audio) {
   return paddedAudio;
 }
 
-void visualize_fbank(const std::vector<std::vector<float>> &fbank_feature,
-                     const std::string &output_path) {
+void visualizeFbank(const std::vector<std::vector<float>> &fbank_feature,
+                    const std::string &output_path) {
   if (fbank_feature.empty() || fbank_feature[0].empty()) {
     std::cerr << "Empty feature matrix!" << std::endl;
     return;
@@ -112,7 +116,27 @@ void visualize_fbank(const std::vector<std::vector<float>> &fbank_feature,
   cv::imwrite(output_path, color_image);
 }
 
-TEST_F(LipSyncTest, TestFbankCalculation) {
+void prettyPrintModelInfos(ModelInfo const &modelInfos) {
+  std::cout << "Model Name: " << modelInfos.name << std::endl;
+  std::cout << "Inputs:" << std::endl;
+  for (const auto &input : modelInfos.inputs) {
+    std::cout << "  Name: " << input.name << ", Shape: ";
+    for (int64_t dim : input.shape) {
+      std::cout << dim << " ";
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "Outputs:" << std::endl;
+  for (const auto &output : modelInfos.outputs) {
+    std::cout << "  Name: " << output.name << ", Shape: ";
+    for (int64_t dim : output.shape) {
+      std::cout << dim << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+TEST_F(InferTest, WenetEncoderInfer) {
   std::vector<float> audio = readAudioFile(audioPath.string());
   std::vector<float> preprocessedAudio = preprocessAudio(audio);
   ASSERT_EQ(preprocessedAudio.size(), 32 * 160 + audio.size() + 35 * 160);
@@ -130,7 +154,29 @@ TEST_F(LipSyncTest, TestFbankCalculation) {
   FbankComputer fbankComputer(opts);
   auto fbankFeatures = fbankComputer.Compute(preprocessedAudio);
   ASSERT_GT(fbankFeatures.size(), 0);
-  visualize_fbank(fbankFeatures, "fbank_features.png");
+  visualizeFbank(fbankFeatures, "fbank_features.png");
+
+  WeNetEncoderInput wenetEncoderInput;
+  wenetEncoderInput.chunk =
+      cv::Mat(fbankFeatures.size(), fbankFeatures[0].size(), CV_32F);
+  for (size_t i = 0; i < fbankFeatures.size(); i++) {
+    for (size_t j = 0; j < fbankFeatures[0].size(); j++) {
+      wenetEncoderInput.chunk.at<float>(i, j) = fbankFeatures[i][j];
+    }
+  }
+
+  AlgoBase algoBase;
+  algoBase.name = "wenet_encoder";
+  algoBase.modelPath = wenetEncoderPath.string();
+
+  dnn::WeNetEncoderInference wenetEncoder(algoBase);
+  ASSERT_TRUE(wenetEncoder.initialize());
+
+  ModelInfo modelInfos;
+  wenetEncoder.getModelInfo(modelInfos);
+  prettyPrintModelInfos(modelInfos);
+
+  // TODO: make input and infer
 }
 
 int main(int argc, char **argv) {

@@ -8,12 +8,12 @@
 #include <spdlog/spdlog.h>
 
 // logger setting
-#define BASIC_LOGGER_NAME "basic"
-#define BASIC_LOGGER_LOGGER_ERROR_FILENAME "logs/basic_error.log"
-#define BASIC_LOGGER_LOGGER_TRACE_FILENAME "logs/basic_error.log"
-#define BASIC_LOGGER_PATTERN "[%Y-%m-%d %H:%M:%S.%e][%^%l%$][%t][%s:%#] %v"
-#define BASIC_LOGGER_ROTATING_MAX_FILE_SIZE (1024 * 1024)
-#define BASIC_LOGGER_ROTATING_MAX_FILE_NUM 5
+#define LOGGER_NAME "basic"
+#define LOGGER_LOGGER_ERROR_FILENAME "logs/basic_error.log"
+#define LOGGER_LOGGER_TRACE_FILENAME "logs/basic_error.log"
+#define LOGGER_PATTERN "[%Y-%m-%d %H:%M:%S.%e][%^%l%$][%t][%s:%#] %v"
+#define LOGGER_ROTATING_MAX_FILE_SIZE (1024 * 1024)
+#define LOGGER_ROTATING_MAX_FILE_NUM 5
 
 #define _TRACE 0
 #define _DEBUG 1
@@ -23,17 +23,17 @@
 #define _CRITI 5
 #define _OFF 6
 
-#define BASIC_LOGGER_TRACE(...)                                                \
+#define LOGGER_TRACE(...)                                                      \
   LipSyncLoggerOut(_TRACE, __FILE__, __LINE__, ##__VA_ARGS__)
-#define BASIC_LOGGER_DEBUG(...)                                                \
+#define LOGGER_DEBUG(...)                                                      \
   LipSyncLoggerOut(_DEBUG, __FILE__, __LINE__, ##__VA_ARGS__)
-#define BASIC_LOGGER_INFO(...)                                                 \
+#define LOGGER_INFO(...)                                                       \
   LipSyncLoggerOut(_INFO, __FILE__, __LINE__, ##__VA_ARGS__)
-#define BASIC_LOGGER_WARN(...)                                                 \
+#define LOGGER_WARN(...)                                                       \
   LipSyncLoggerOut(_WARN, __FILE__, __LINE__, ##__VA_ARGS__)
-#define BASIC_LOGGER_ERROR(...)                                                \
+#define LOGGER_ERROR(...)                                                      \
   LipSyncLoggerOut(_ERROR, __FILE__, __LINE__, ##__VA_ARGS__)
-#define BASIC_LOGGER_CRITICAL(...)                                             \
+#define LOGGER_CRITICAL(...)                                                   \
   LipSyncLoggerOut(_CRITI, __FILE__, __LINE__, ##__VA_ARGS__)
 
 #ifdef __cplusplus
@@ -59,7 +59,7 @@ template <typename... T>
 void LipSyncLoggerOut(const int level, const char *filename, const int line,
                       T &&...args) {
   // Note: sdplog::get is a thread safe function
-  std::shared_ptr<spdlog::logger> logger_ptr = spdlog::get(BASIC_LOGGER_NAME);
+  std::shared_ptr<spdlog::logger> logger_ptr = spdlog::get(LOGGER_NAME);
   if (!logger_ptr) {
     fprintf(stderr, "Failed to get logger, Please init logger firstly.\n");
     return; // Add this to prevent potential null pointer dereference
