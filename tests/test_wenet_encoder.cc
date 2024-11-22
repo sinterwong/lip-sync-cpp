@@ -19,9 +19,16 @@
 
 #include <filesystem>
 
+#include "logger/logger.hpp"
+
 namespace fs = std::filesystem;
 using namespace lip_sync::audio;
 using namespace lip_sync::infer;
+
+const auto initLogger = []() -> decltype(auto) {
+  LipSyncLoggerInit(true, true, true, true);
+  return true;
+}();
 
 class InferTest : public ::testing::Test {
 protected:
