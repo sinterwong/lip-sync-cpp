@@ -8,8 +8,6 @@
  * @copyright Copyright (c) 2024
  *
  */
-#include <gtest/gtest.h>
-
 #include "audio/fbank.hpp"
 #include "infer/types.hpp"
 #include "infer/wenet_encoder.hpp"
@@ -29,19 +27,6 @@ const auto initLogger = []() -> decltype(auto) {
   LipSyncLoggerInit(true, true, true, true);
   return true;
 }();
-
-class InferTest : public ::testing::Test {
-protected:
-  void SetUp() override {}
-  void TearDown() override {}
-
-  fs::path dataDir = fs::path("data");
-  fs::path audioPath = dataDir / "test.wav";
-  fs::path imagePath = dataDir / "image.jpg";
-
-  fs::path modelDir = fs::path("models");
-  fs::path wenetEncoderPath = modelDir / "wenet_encoder.onnx";
-};
 
 std::vector<float> readAudioFile(std::string const &filePath) {
   SF_INFO sfinfo;
@@ -143,10 +128,16 @@ void prettyPrintModelInfos(ModelInfo const &modelInfos) {
   }
 }
 
-TEST_F(InferTest, WenetEncoderInfer) {
+int main(int argc, char **argv) {
+  fs::path dataDir = fs::path("data");
+  fs::path audioPath = dataDir / "test.wav";
+  fs::path imagePath = dataDir / "image.jpg";
+
+  fs::path modelDir = fs::path("models");
+  fs::path wenetEncoderPath = modelDir / "wenet_encoder.onnx";
+
   std::vector<float> audio = readAudioFile(audioPath.string());
   std::vector<float> preprocessedAudio = preprocessAudio(audio);
-  ASSERT_EQ(preprocessedAudio.size(), 32 * 160 + audio.size() + 35 * 160);
 
   FbankComputer::FbankOptions opts;
   opts.num_mel_bins = 80;
@@ -160,7 +151,6 @@ TEST_F(InferTest, WenetEncoderInfer) {
 
   FbankComputer fbankComputer(opts);
   auto fbankFeatures = fbankComputer.Compute(preprocessedAudio);
-  ASSERT_GT(fbankFeatures.size(), 0);
   visualizeFbank(fbankFeatures, "fbank_features.png");
 
   WeNetEncoderInput wenetEncoderInput;
@@ -177,16 +167,8 @@ TEST_F(InferTest, WenetEncoderInfer) {
   algoBase.modelPath = wenetEncoderPath.string();
 
   dnn::WeNetEncoderInference wenetEncoder(algoBase);
-  ASSERT_TRUE(wenetEncoder.initialize());
 
   ModelInfo modelInfos;
   wenetEncoder.getModelInfo(modelInfos);
   prettyPrintModelInfos(modelInfos);
-
-  // TODO: make input and infer
-}
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
 }

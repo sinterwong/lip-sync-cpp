@@ -1,8 +1,8 @@
 #include "fbank.hpp"
 #include <algorithm>
 #include <cstring>
-#include <kissfft/kiss_fft.h>
-#include <kissfft/kiss_fftr.h>
+#include <kiss_fft.h>
+#include <kiss_fftr.h>
 #include <stdexcept>
 
 namespace lip_sync::audio {

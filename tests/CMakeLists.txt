@@ -1,9 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 PROJECT(Tests)
 
-LOAD_SPDLOG()
-LOAD_GFLAGS()
-LOAD_GTEST()
 LOAD_OPENCV()
 LOAD_SNDFINE()
 LOAD_KISSFFT()
@@ -11,20 +8,20 @@ LOAD_ONNXRUNTIME()
 
 INCLUDE_DIRECTORIES(
     ${PROJECT_INCLUDE_DIR}
-    ${CMAKE_INCLUDE_PATH}
+    ${SndFile_INCLUDE_DIR}
+    ${kissfft_INCLUDE_DIR}
+    ${OpenCV_INCLUDE_DIRS}
+    ${ONNXRUNTIME_INCLUDE_DIR}
 )
 
 LINK_LIBRARIES(
     infer
-    fbank
+    audio
     module_logger
-    SndFile::sndfile
-    kissfft::kissfft
-    onnxruntime::onnxruntime
-    opencv::opencv
-    gflags::gflags
-    gtest::gtest
-    spdlog::spdlog
+    ${SndFile_LIBS}
+    ${kissfft_LIBS}
+    ${ONNXRUNTIME_LIBS}
+    ${OpenCV_LIBS}
 )
 
 FILE(MAKE_DIRECTORY ${PROJECT_OUTPUT_DIR}/tests)

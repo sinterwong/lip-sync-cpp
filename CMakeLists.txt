@@ -16,11 +16,9 @@ MESSAGE(STATUS "Build LipSync: ${LIP_SYNC_VERSION}")
 MESSAGE(STATUS "Build with tests: ${BUILD_TESTS}")
 MESSAGE(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 
-# Include conan
-INCLUDE(cmake/conan.cmake)
-conan_config_install()
-
-INCLUDE(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
+# IF(CMAKE_TOOLCHAIN_FILE)
+#     MESSAGE(STATUS "CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
+# ENDIF()
 
 # Set default build to debug
 IF(NOT CMAKE_BUILD_TYPE)
@@ -35,13 +33,9 @@ IF(NOT TARGET_ARCH)
     SET(TARGET_ARCH ${CMAKE_SYSTEM_PROCESSOR})
 ENDIF()
 
-IF(NOT TARGET_HARDWARE)
-    SET(TARGET_HARDWARE generic)
-ENDIF()
 
 MESSAGE(STATUS "Your target os : ${TARGET_OS}")
 MESSAGE(STATUS "Your target arch : ${TARGET_ARCH}")
-MESSAGE(STATUS "Your target hardware : ${TARGET_HARDWARE}")
 
 MESSAGE(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
 
