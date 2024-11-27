@@ -51,17 +51,37 @@ ENDMACRO()
 
 MACRO(LOAD_OPENCV)
     SET(OPENCV_HOME ${3RDPARTY_DIR}/opencv)
-    SET(OpenCV_INCLUDE_DIRS ${OPENCV_HOME}/jni/include)
-    SET(OpenCV_LIBRARY_DIRS ${OPENCV_HOME}/libs/${ANDROID_ABI})
+    
+    IF (TARGET_OS STREQUAL "Android" )
+        SET(OpenCV_INCLUDE_DIRS ${OPENCV_HOME}/jni/include)
+        SET(OpenCV_LIBRARY_DIRS ${OPENCV_HOME}/libs/${ANDROID_ABI})
 
-    SET(OpenCV_LIBS
-        ${OpenCV_LIBRARY_DIRS}/libopencv_core.so
-        ${OpenCV_LIBRARY_DIRS}/libopencv_imgproc.so
-        ${OpenCV_LIBRARY_DIRS}/libopencv_imgcodecs.so
-        ${OpenCV_LIBRARY_DIRS}/libopencv_highgui.so
-        ${OpenCV_LIBRARY_DIRS}/libopencv_video.so
-        ${OpenCV_LIBRARY_DIRS}/libopencv_videoio.so
-    )
+        SET(OpenCV_LIBS
+            ${OpenCV_LIBRARY_DIRS}/libopencv_core.so
+            ${OpenCV_LIBRARY_DIRS}/libopencv_imgproc.so
+            ${OpenCV_LIBRARY_DIRS}/libopencv_imgcodecs.so
+            ${OpenCV_LIBRARY_DIRS}/libopencv_highgui.so
+            ${OpenCV_LIBRARY_DIRS}/libopencv_video.so
+            ${OpenCV_LIBRARY_DIRS}/libopencv_videoio.so
+        )
+    ELSE()
+        SET(OpenCV_LIBRARY_DIR ${OPENCV_HOME}/lib)
+        LIST(APPEND CMAKE_PREFIX_PATH ${OpenCV_LIBRARY_DIR}/cmake)
+        FIND_PACKAGE(OpenCV CONFIG REQUIRED COMPONENTS core imgproc highgui videoio imgcodecs calib3d)
+        
+        IF(OpenCV_INCLUDE_DIRS)
+            MESSAGE(STATUS "Opencv library status:")
+            MESSAGE(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
+            MESSAGE(STATUS "    libraries dir: ${OpenCV_LIBRARY_DIR}")
+            MESSAGE(STATUS "    libraries: ${OpenCV_LIBS}")
+        ELSE()
+            MESSAGE(FATAL_ERROR "OpenCV not found!")
+        ENDIF()
+    
+        LINK_DIRECTORIES(
+            ${OpenCV_LIBRARY_DIR}
+        )
+    ENDIF()
 
 ENDMACRO()
 

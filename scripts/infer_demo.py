@@ -98,13 +98,36 @@ def feature2chunks(feature_array: np.ndarray) -> List[np.ndarray]:
     return audio_chunks
 
 
+def print_feature_stats(wenet_features):
+    print("=== Python WenetFeatures Statistics ===")
+    print(f"Total features: {len(wenet_features)}")
+
+    # 打印第一个特征的统计信息
+    first_feature = wenet_features[0]
+    print(f"\nFirst feature shape: {first_feature.shape}")
+    print(f"First feature first 5 values: {first_feature[0, :5]}")  # 第一行前5个值
+    print(f"First feature mean: {np.mean(first_feature):.6f}")
+    print(f"First feature std: {np.std(first_feature):.6f}")
+    print(f"First feature min: {np.min(first_feature):.6f}")
+    print(f"First feature max: {np.max(first_feature):.6f}")
+
+    # 打印最后一个特征的统计信息
+    middle_feature = wenet_features[-2]
+    print(f"\nMiddle feature shape: {middle_feature.shape}")
+    print(f"Middle feature first 5 values: {middle_feature[0, :5]}")
+    print(f"Middle feature mean: {np.mean(middle_feature):.6f}")
+    print(f"Middle feature std: {np.std(middle_feature):.6f}")
+    print(f"Middle feature min: {np.min(middle_feature):.6f}")
+    print(f"Middle feature max: {np.max(middle_feature):.6f}")
+
+
 if __name__ == "__main__":
-    wenet_weight = "pretrained/wenet_encoder.onnx"
-    wav2lip_weight = "pretrained/w2l_with_wenet.onnx"
+    wenet_weight = "/home/sinter/workspace/lip-sync-cpp/tests/models/wenet_encoder.onnx"
+    wav2lip_weight = "/home/sinter/workspace/lip-sync-cpp/tests/models/w2l_with_wenet.onnx"
     input_size, pad_size = 160, 4
 
-    audio_path = "demos/test.wav"
-    image_path = "demos/image.jpg"
+    audio_path = "/home/sinter/workspace/lip-sync-cpp/tests/data/test.wav"
+    image_path = "/home/sinter/workspace/lip-sync-cpp/tests/data/image.jpg"
     face_bbox = (476, 832, 645, 1001)
     use_half = False
     device = "cpu"
@@ -118,6 +141,8 @@ if __name__ == "__main__":
 
     # audio feature extraction
     audio_feature = audio2feature(audio, wenet_weight)
+    print_feature_stats(audio_feature)
+
     audio_chunks = feature2chunks(audio_feature)
 
     # load image/video
