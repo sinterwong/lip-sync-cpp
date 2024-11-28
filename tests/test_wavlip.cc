@@ -8,11 +8,12 @@
  * @copyright Copyright (c) 2024
  *
  */
-#include "audio/fbank.hpp"
+#include "audio/audio_processor.hpp"
 #include "infer/face_processor.hpp"
+#include "infer/fbank.hpp"
+#include "infer/feature_extractor.hpp"
 #include "infer/types.hpp"
 #include "infer/wavlip.hpp"
-#include "infer/wenet_encoder.hpp"
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
 #include <sndfile.h>
@@ -24,196 +25,12 @@
 namespace fs = std::filesystem;
 using namespace lip_sync::audio;
 using namespace lip_sync::infer;
+using namespace lip_sync;
 
 const auto initLogger = []() -> decltype(auto) {
   LipSyncLoggerInit(true, true, true, true);
   return true;
 }();
-
-std::vector<float> readAudioFile(std::string const &filePath) {
-  SF_INFO sfinfo;
-  SNDFILE *sndfile = sf_open(filePath.c_str(), SFM_READ, &sfinfo);
-  if (!sndfile) {
-    fprintf(stderr, "Error: could not open audio file: %s\n",
-            sf_strerror(sndfile));
-    return {};
-  }
-
-  int num_frames = sfinfo.frames;
-  std::vector<float> audioData(num_frames);
-  sf_readf_float(sndfile, audioData.data(), num_frames);
-  sf_close(sndfile);
-  return audioData;
-}
-
-std::vector<float> preprocessAudio(const std::vector<float> &audio) {
-  int empty_frames_30 = 32 * 160; // 32 * 160 samples
-  int empty_frames_31 = 35 * 160; // 35 * 160 samples
-
-  std::vector<float> paddedAudio;
-  paddedAudio.resize(empty_frames_30 + audio.size() + empty_frames_31);
-
-  // Fill the beginning and end with zeros
-  std::fill(paddedAudio.begin(), paddedAudio.begin() + empty_frames_30, 0.0f);
-  std::transform(audio.begin(), audio.end(),
-                 paddedAudio.begin() + empty_frames_30, [](float x) {
-                   int16_t ret = static_cast<int16_t>(x * 32767.0f);
-                   return static_cast<float>(ret);
-                 });
-  std::fill(paddedAudio.begin() + empty_frames_30 + audio.size(),
-            paddedAudio.end(), 0.0f);
-
-  return paddedAudio;
-}
-
-void processWeNet(const std::vector<std::vector<float>> &fbankFeatures,
-                  std::vector<cv::Mat> &wenetFeatures,
-                  dnn::WeNetEncoderInference &engine) {
-  // Convert fbank features to the required format
-  const int batchSize = 1;
-  const int framesStride = 67;
-  const int numFeatures = 80;
-  const int fbankFeatureLength = fbankFeatures.size();
-
-  // Initialize caches
-  cv::Mat attCache = cv::Mat::zeros(3 * 8 * 16 * 128, 1, CV_32F);
-  cv::Mat cnnCache = cv::Mat::zeros(3 * 1 * 512 * 14, 1, CV_32F);
-  int offset = 100;
-
-  // Process features using sliding window
-  int start = 0;
-  int end = 0;
-
-  while (end < fbankFeatureLength) {
-    end = start + framesStride;
-
-    // Prepare chunk feature
-    cv::Mat chunkFeat;
-    if (end <= fbankFeatureLength) {
-      chunkFeat = cv::Mat(framesStride * numFeatures, 1, CV_32F);
-
-      // Copy features to chunk
-      for (int i = start; i < end; i++) {
-        if (i < fbankFeatureLength) {
-          std::memcpy(chunkFeat.ptr<float>() + (i - start) * numFeatures,
-                      fbankFeatures[i].data(), numFeatures * sizeof(float));
-        } else {
-          // Zero padding if needed
-          std::memset(chunkFeat.ptr<float>() + (i - start) * numFeatures, 0,
-                      numFeatures * sizeof(float));
-        }
-      }
-    } else {
-      // Handle last chunk with padding
-      chunkFeat = cv::Mat(framesStride * numFeatures, 1, CV_32F, cv::Scalar(0));
-      for (int i = start; i < fbankFeatureLength; i++) {
-        std::memcpy(chunkFeat.ptr<float>() + (i - start) * numFeatures,
-                    fbankFeatures[i].data(), numFeatures * sizeof(float));
-      }
-    }
-
-    // Prepare input for inference
-    WeNetEncoderInput encoderInput;
-    encoderInput.chunk = chunkFeat;
-    encoderInput.offset = offset;
-    encoderInput.attCache = attCache;
-    encoderInput.cnnCache = cnnCache;
-
-    AlgoInput input;
-    input.setParams(encoderInput);
-
-    // Run inference
-    AlgoOutput output;
-    WeNetEncoderOutput wenetEncoderOutput;
-    output.setParams(wenetEncoderOutput);
-    if (!engine.infer(input, output)) {
-      LOGGER_ERROR("Failed to process WeNet encoder");
-      return;
-    }
-
-    // Get output and update caches
-    auto *encoderOutput = output.getParams<WeNetEncoderOutput>();
-    if (encoderOutput) {
-      // 原始数据是 [1, 16, 512]
-      const float *srcData = encoderOutput->data.data();
-      cv::Mat outputFeature(16, 512, CV_32F);
-
-      // 跳过batch维度(第一个1),正确重排数据
-      for (int i = 0; i < 16; i++) {
-        float *dstRow = outputFeature.ptr<float>(i);
-        for (int j = 0; j < 512; j++) {
-          // 计算在原始三维数据中的索引
-          dstRow[j] = srcData[i * 512 + j];
-        }
-      }
-      wenetFeatures.push_back(outputFeature);
-    }
-
-    // update sliding window
-    start += 5;
-  }
-}
-
-cv::Mat getSlicedFeature(const std::vector<cv::Mat> &feature, int frameIdx) {
-  // 计算左右边界
-  int left = frameIdx - 8;
-  int right = frameIdx + 8;
-  int padLeft = 0;
-  int padRight = 0;
-
-  // 处理边界情况
-  if (left < 0) {
-    padLeft = -left;
-    left = 0;
-  }
-  if (right > static_cast<int>(feature.size())) {
-    padRight = right - feature.size();
-    right = feature.size();
-  }
-
-  // 计算有效特征的行数和列数
-  int validFeatures = right - left;
-  int rows = feature[0].rows;
-  int cols = feature[0].cols;
-
-  // 创建结果矩阵
-  cv::Mat result(rows * 16, cols, CV_32F);
-
-  // 复制有效特征
-  int currentRow = padLeft * rows;
-  // 填充左边的零
-  for (int i = 0; i < padLeft; ++i) {
-    cv::Mat zeroMat = cv::Mat::zeros(rows, cols, CV_32F);
-    zeroMat.copyTo(result(cv::Rect(0, i * rows, cols, rows)));
-  }
-
-  // 复制有效数据
-  for (int i = left; i < right; ++i) {
-    feature[i].copyTo(result(cv::Rect(0, currentRow, cols, rows)));
-    currentRow += rows;
-  }
-
-  // 填充右边的零
-  for (int i = 0; i < padRight; ++i) {
-    cv::Mat zeroMat = cv::Mat::zeros(rows, cols, CV_32F);
-    zeroMat.copyTo(result(cv::Rect(0, currentRow, cols, rows)));
-    currentRow += rows;
-  }
-
-  return result;
-}
-
-std::vector<cv::Mat> featureToChunks(const std::vector<cv::Mat> &featureArray) {
-  std::vector<cv::Mat> audioChunks;
-  audioChunks.reserve(featureArray.size());
-
-  for (int i = 0; i < featureArray.size(); ++i) {
-    cv::Mat selectedFeature = getSlicedFeature(featureArray, i);
-    audioChunks.push_back(selectedFeature);
-  }
-
-  return audioChunks;
-}
 
 void visualizeFbank(const std::vector<std::vector<float>> &fbank_feature,
                     const std::string &output_path) {
@@ -257,26 +74,6 @@ void visualizeFbank(const std::vector<std::vector<float>> &fbank_feature,
 
   // Save image
   cv::imwrite(output_path, color_image);
-}
-
-void prettyPrintModelInfos(ModelInfo const &modelInfos) {
-  std::cout << "Model Name: " << modelInfos.name << std::endl;
-  std::cout << "Inputs:" << std::endl;
-  for (const auto &input : modelInfos.inputs) {
-    std::cout << "  Name: " << input.name << ", Shape: ";
-    for (int64_t dim : input.shape) {
-      std::cout << dim << " ";
-    }
-    std::cout << std::endl;
-  }
-  std::cout << "Outputs:" << std::endl;
-  for (const auto &output : modelInfos.outputs) {
-    std::cout << "  Name: " << output.name << ", Shape: ";
-    for (int64_t dim : output.shape) {
-      std::cout << dim << " ";
-    }
-    std::cout << std::endl;
-  }
 }
 
 void printMatInfo(const cv::Mat &mat, const std::string &name) {
@@ -380,8 +177,17 @@ int main(int argc, char **argv) {
   fs::path wavToLipPath = modelDir / "w2l_with_wenet.onnx";
 
   // Read and preprocess audio
-  std::vector<float> audio = readAudioFile(audioPath.string());
-  std::vector<float> preprocessedAudio = preprocessAudio(audio);
+  AudioProcessor audioProcessor;
+  auto audio = audioProcessor.readAudio(audioPath.string());
+  auto preprocessedAudio = audioProcessor.preprocess(audio);
+
+  WeNetConfig wenetConfig{.modelPath = wenetEncoderPath.string()};
+  FeatureExtractor featureExtractor(FbankConfig{}, wenetConfig);
+
+  if (!featureExtractor.initialize()) {
+    LOGGER_ERROR("Failed to initialize feature extractor");
+    return 1;
+  }
 
   // Setup Fbank computer
   FbankComputer::FbankOptions opts;
@@ -394,22 +200,16 @@ int main(int argc, char **argv) {
   opts.use_log_fbank = true;
   opts.use_power = true;
 
-  // Compute Fbank features
-  FbankComputer fbankComputer(opts);
-  auto fbankFeatures = fbankComputer.Compute(preprocessedAudio);
-  visualizeFbank(fbankFeatures, "fbank_features.png");
+  auto fbankFeatures = featureExtractor.computeFbank(preprocessedAudio);
+  visualizeFbank(fbankFeatures, "fbank_feature.png");
 
-  // Initialize Engine
-  AlgoBase encoderAlgoBase;
-  encoderAlgoBase.name = "wenet_encoder";
-  encoderAlgoBase.modelPath = wenetEncoderPath.string();
+  auto wenetFeatures = featureExtractor.extractWenetFeatures(fbankFeatures);
+  printFeatureStats(wenetFeatures);
 
-  dnn::WeNetEncoderInference wenetEncoder(encoderAlgoBase);
-  if (!wenetEncoder.initialize()) {
-    LOGGER_ERROR("Failed to initialize wenet encoder model");
-    return 1;
-  }
+  auto audioChunks = featureExtractor.convertToChunks(wenetFeatures);
+  printFeatureStats(audioChunks);
 
+  // Initialize wav to lip engine
   AlgoBase wavToLipAlgoBase;
   wavToLipAlgoBase.name = "wavlip";
   wavToLipAlgoBase.modelPath = wavToLipPath.string();
@@ -419,22 +219,7 @@ int main(int argc, char **argv) {
     LOGGER_ERROR("Failed to initialize wav to lip model");
     return 1;
   }
-
-  // Print model info
-  ModelInfo modelInfos;
-  wenetEncoder.getModelInfo(modelInfos);
-  prettyPrintModelInfos(modelInfos);
-
-  modelInfos.inputs.clear();
-  modelInfos.outputs.clear();
-  wavToLip.getModelInfo(modelInfos);
-  prettyPrintModelInfos(modelInfos);
-
-  std::vector<cv::Mat> wenetFeatures;
-  processWeNet(fbankFeatures, wenetFeatures, wenetEncoder);
-  // printFeatureStats(wenetFeatures);
-
-  std::vector<cv::Mat> audioChunks = featureToChunks(wenetFeatures);
+  wavToLip.prettyPrintModelInfos();
 
   // load face image
   cv::Mat frame = cv::imread(imagePath.string());
@@ -449,7 +234,6 @@ int main(int argc, char **argv) {
   ProcessedFaceData processed = processor.preProcess(frame, faceBbox);
 
   printMatInfo(processed.xData, "processed.xData");
-  printMatInfo(processed.faceCropLarge, "processed.faceCropLarge");
 
   WeNetInput wavToLipInput;
   wavToLipInput.image = processed.xData;

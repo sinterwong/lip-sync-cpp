@@ -5,7 +5,7 @@
 #include <kiss_fftr.h>
 #include <stdexcept>
 
-namespace lip_sync::audio {
+namespace lip_sync::infer {
 
 FbankComputer::FbankComputer(const FbankOptions &opts)
     : opts_(opts), rng_(std::random_device{}()), normal_dist_(0.0f, 1.0f) {
@@ -419,4 +419,4 @@ int FbankComputer::GetNextPowerOfTwo(int x) {
   x |= x >> 16;
   return x + 1;
 }
-} // namespace lip_sync::audio
+} // namespace lip_sync::infer

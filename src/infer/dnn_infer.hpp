@@ -13,6 +13,7 @@
 #define __ONNXRUNTIME_INFERENCE_H_
 
 #include "types.hpp"
+#include <memory>
 #include <onnxruntime_cxx_api.h>
 
 namespace lip_sync::infer::dnn {
@@ -42,12 +43,24 @@ public:
    * @brief Get the Model Info object
    *
    */
-  virtual void getModelInfo(ModelInfo &);
+  virtual std::shared_ptr<ModelInfo> getModelInfo();
 
+  /**
+   * @brief Print model infomations
+   *
+   */
+  virtual void prettyPrintModelInfos();
+
+  /**
+   * @brief Release
+   *
+   */
   virtual void terminate();
 
 protected:
   AlgoBase mParams;
+
+  std::shared_ptr<ModelInfo> modelInfo;
 
   std::vector<Ort::Value> inputTensors;
   std::vector<Ort::Value> outputTensors;

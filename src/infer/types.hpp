@@ -101,9 +101,28 @@ struct AlgoBase {
 };
 
 struct ProcessedFaceData {
-  cv::Mat xData;         // concatenated faceCrop and faceMask
-  cv::Mat faceCropLarge; // store for post-processing
-  cv::Rect boundingBox;  // store original bbox for post-processing
+  cv::Mat xData;
+  cv::Mat faceCropLarge;
+  cv::Rect boundingBox;
+};
+
+struct FbankConfig {
+  int numMelBins = 80;
+  int frameLength = 25;
+  int frameShift = 10;
+  bool useLogFbank = true;
+  bool usePower = true;
+  float dither = 0.0f;
+  float energyFloor = 1.0f;
+  int sampleFrequency = 16000;
+};
+
+struct WeNetConfig {
+  int batchSize = 1;
+  int framesStride = 67;
+  int numFeatures = 80;
+  int slidingStep = 5;
+  std::string modelPath;
 };
 
 } // namespace lip_sync::infer

@@ -24,17 +24,17 @@
 #define _OFF 6
 
 #define LOGGER_TRACE(...)                                                      \
-  LipSyncLoggerOut(_TRACE, __FILE__, __LINE__, ##__VA_ARGS__)
+  SPDLOG_LOGGER_TRACE(spdlog::get(LOGGER_NAME), __VA_ARGS__)
 #define LOGGER_DEBUG(...)                                                      \
-  LipSyncLoggerOut(_DEBUG, __FILE__, __LINE__, ##__VA_ARGS__)
+  SPDLOG_LOGGER_DEBUG(spdlog::get(LOGGER_NAME), __VA_ARGS__)
 #define LOGGER_INFO(...)                                                       \
-  LipSyncLoggerOut(_INFO, __FILE__, __LINE__, ##__VA_ARGS__)
+  SPDLOG_LOGGER_INFO(spdlog::get(LOGGER_NAME), __VA_ARGS__)
 #define LOGGER_WARN(...)                                                       \
-  LipSyncLoggerOut(_WARN, __FILE__, __LINE__, ##__VA_ARGS__)
+  SPDLOG_LOGGER_WARN(spdlog::get(LOGGER_NAME), __VA_ARGS__)
 #define LOGGER_ERROR(...)                                                      \
-  LipSyncLoggerOut(_ERROR, __FILE__, __LINE__, ##__VA_ARGS__)
+  SPDLOG_LOGGER_ERROR(spdlog::get(LOGGER_NAME), __VA_ARGS__)
 #define LOGGER_CRITICAL(...)                                                   \
-  LipSyncLoggerOut(_CRITI, __FILE__, __LINE__, ##__VA_ARGS__)
+  SPDLOG_LOGGER_CRITICAL(spdlog::get(LOGGER_NAME), __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,26 +54,4 @@ void LipSyncLoggerDrop();
 #ifdef __cplusplus
 }
 #endif
-
-template <typename... T>
-void LipSyncLoggerOut(const int level, const char *filename, const int line,
-                      T &&...args) {
-  // Note: sdplog::get is a thread safe function
-  std::shared_ptr<spdlog::logger> logger_ptr = spdlog::get(LOGGER_NAME);
-  if (!logger_ptr) {
-    fprintf(stderr, "Failed to get logger, Please init logger firstly.\n");
-    return; // Add this to prevent potential null pointer dereference
-  }
-#ifdef _MSC_VER
-  // MSVC
-  logger_ptr->info("{}, {}, {}", filename, line, SPDLOG_FUNCTION);
-  logger_ptr->log(static_cast<spdlog::level::level_enum>(level), "Message: ");
-#else
-  // GCC
-  logger_ptr->log(spdlog::source_loc{filename, line, SPDLOG_FUNCTION},
-                  static_cast<spdlog::level::level_enum>(level),
-                  std::forward<T>(args)...);
-#endif
-}
-
 #endif

@@ -7,7 +7,7 @@
 #include <random>
 #include <vector>
 
-namespace lip_sync::audio {
+namespace lip_sync::infer {
 
 class FbankComputer {
 public:
@@ -89,6 +89,6 @@ private:
   std::normal_distribution<float> normal_dist_;
 };
 
-} // namespace lip_sync::audio
+} // namespace lip_sync::infer
 
 #endif
