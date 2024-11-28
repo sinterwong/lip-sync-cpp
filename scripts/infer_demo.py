@@ -111,14 +111,23 @@ def print_feature_stats(wenet_features):
     print(f"First feature min: {np.min(first_feature):.6f}")
     print(f"First feature max: {np.max(first_feature):.6f}")
 
-    # 打印最后一个特征的统计信息
-    middle_feature = wenet_features[-2]
+    # 打印中间的特征的统计信息
+    middle_feature = wenet_features[31]
     print(f"\nMiddle feature shape: {middle_feature.shape}")
     print(f"Middle feature first 5 values: {middle_feature[0, :5]}")
     print(f"Middle feature mean: {np.mean(middle_feature):.6f}")
     print(f"Middle feature std: {np.std(middle_feature):.6f}")
     print(f"Middle feature min: {np.min(middle_feature):.6f}")
     print(f"Middle feature max: {np.max(middle_feature):.6f}")
+
+    # 打印最后一个特征的统计信息
+    last_feature = wenet_features[-1]
+    print(f"\nLast feature shape: {last_feature.shape}")
+    print(f"Last feature first 5 values: {last_feature[0, :5]}")
+    print(f"Last feature mean: {np.mean(last_feature):.6f}")
+    print(f"Last feature std: {np.std(last_feature):.6f}")
+    print(f"Last feature min: {np.min(last_feature):.6f}")
+    print(f"Last feature max: {np.max(last_feature):.6f}")
 
 
 if __name__ == "__main__":
@@ -144,6 +153,7 @@ if __name__ == "__main__":
     print_feature_stats(audio_feature)
 
     audio_chunks = feature2chunks(audio_feature)
+    print_feature_stats(audio_chunks)
 
     # load image/video
     frame = cv2.imread(image_path, 1)
@@ -172,6 +182,7 @@ if __name__ == "__main__":
     face_crop = face_crop[np.newaxis, ...] / 255.
     face_mask = face_mask[np.newaxis, ...] / 255.
     x = np.concatenate([face_crop, face_mask], axis=1)
+
     a = audio_chunks[0].reshape(256, 16, 32)[np.newaxis, ...]
     a = a.astype("float32")
 

@@ -100,5 +100,11 @@ struct AlgoBase {
   std::string modelPath;
 };
 
+struct ProcessedFaceData {
+  cv::Mat xData;         // concatenated faceCrop and faceMask
+  cv::Mat faceCropLarge; // store for post-processing
+  cv::Rect boundingBox;  // store original bbox for post-processing
+};
+
 } // namespace lip_sync::infer
 #endif

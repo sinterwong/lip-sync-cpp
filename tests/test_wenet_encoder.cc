@@ -9,7 +9,9 @@
  *
  */
 #include "audio/fbank.hpp"
+#include "infer/face_processor.hpp"
 #include "infer/types.hpp"
+#include "infer/wavlip.hpp"
 #include "infer/wenet_encoder.hpp"
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
@@ -62,6 +64,155 @@ std::vector<float> preprocessAudio(const std::vector<float> &audio) {
             paddedAudio.end(), 0.0f);
 
   return paddedAudio;
+}
+
+void processWeNet(const std::vector<std::vector<float>> &fbankFeatures,
+                  std::vector<cv::Mat> &wenetFeatures,
+                  dnn::WeNetEncoderInference &engine) {
+  // Convert fbank features to the required format
+  const int batchSize = 1;
+  const int framesStride = 67;
+  const int numFeatures = 80;
+  const int fbankFeatureLength = fbankFeatures.size();
+
+  // Initialize caches
+  cv::Mat attCache = cv::Mat::zeros(3 * 8 * 16 * 128, 1, CV_32F);
+  cv::Mat cnnCache = cv::Mat::zeros(3 * 1 * 512 * 14, 1, CV_32F);
+  int offset = 100;
+
+  // Process features using sliding window
+  int start = 0;
+  int end = 0;
+
+  while (end < fbankFeatureLength) {
+    end = start + framesStride;
+
+    // Prepare chunk feature
+    cv::Mat chunkFeat;
+    if (end <= fbankFeatureLength) {
+      chunkFeat = cv::Mat(framesStride * numFeatures, 1, CV_32F);
+
+      // Copy features to chunk
+      for (int i = start; i < end; i++) {
+        if (i < fbankFeatureLength) {
+          std::memcpy(chunkFeat.ptr<float>() + (i - start) * numFeatures,
+                      fbankFeatures[i].data(), numFeatures * sizeof(float));
+        } else {
+          // Zero padding if needed
+          std::memset(chunkFeat.ptr<float>() + (i - start) * numFeatures, 0,
+                      numFeatures * sizeof(float));
+        }
+      }
+    } else {
+      // Handle last chunk with padding
+      chunkFeat = cv::Mat(framesStride * numFeatures, 1, CV_32F, cv::Scalar(0));
+      for (int i = start; i < fbankFeatureLength; i++) {
+        std::memcpy(chunkFeat.ptr<float>() + (i - start) * numFeatures,
+                    fbankFeatures[i].data(), numFeatures * sizeof(float));
+      }
+    }
+
+    // Prepare input for inference
+    WeNetEncoderInput encoderInput;
+    encoderInput.chunk = chunkFeat;
+    encoderInput.offset = offset;
+    encoderInput.attCache = attCache;
+    encoderInput.cnnCache = cnnCache;
+
+    AlgoInput input;
+    input.setParams(encoderInput);
+
+    // Run inference
+    AlgoOutput output;
+    WeNetEncoderOutput wenetEncoderOutput;
+    output.setParams(wenetEncoderOutput);
+    if (!engine.infer(input, output)) {
+      LOGGER_ERROR("Failed to process WeNet encoder");
+      return;
+    }
+
+    // Get output and update caches
+    auto *encoderOutput = output.getParams<WeNetEncoderOutput>();
+    if (encoderOutput) {
+      // 原始数据是 [1, 16, 512]
+      const float *srcData = encoderOutput->data.data();
+      cv::Mat outputFeature(16, 512, CV_32F);
+
+      // 跳过batch维度(第一个1),正确重排数据
+      for (int i = 0; i < 16; i++) {
+        float *dstRow = outputFeature.ptr<float>(i);
+        for (int j = 0; j < 512; j++) {
+          // 计算在原始三维数据中的索引
+          dstRow[j] = srcData[i * 512 + j];
+        }
+      }
+      wenetFeatures.push_back(outputFeature);
+    }
+
+    // update sliding window
+    start += 5;
+  }
+}
+
+cv::Mat getSlicedFeature(const std::vector<cv::Mat> &feature, int frameIdx) {
+  // 计算左右边界
+  int left = frameIdx - 8;
+  int right = frameIdx + 8;
+  int padLeft = 0;
+  int padRight = 0;
+
+  // 处理边界情况
+  if (left < 0) {
+    padLeft = -left;
+    left = 0;
+  }
+  if (right > static_cast<int>(feature.size())) {
+    padRight = right - feature.size();
+    right = feature.size();
+  }
+
+  // 计算有效特征的行数和列数
+  int validFeatures = right - left;
+  int rows = feature[0].rows;
+  int cols = feature[0].cols;
+
+  // 创建结果矩阵
+  cv::Mat result(rows * 16, cols, CV_32F);
+
+  // 复制有效特征
+  int currentRow = padLeft * rows;
+  // 填充左边的零
+  for (int i = 0; i < padLeft; ++i) {
+    cv::Mat zeroMat = cv::Mat::zeros(rows, cols, CV_32F);
+    zeroMat.copyTo(result(cv::Rect(0, i * rows, cols, rows)));
+  }
+
+  // 复制有效数据
+  for (int i = left; i < right; ++i) {
+    feature[i].copyTo(result(cv::Rect(0, currentRow, cols, rows)));
+    currentRow += rows;
+  }
+
+  // 填充右边的零
+  for (int i = 0; i < padRight; ++i) {
+    cv::Mat zeroMat = cv::Mat::zeros(rows, cols, CV_32F);
+    zeroMat.copyTo(result(cv::Rect(0, currentRow, cols, rows)));
+    currentRow += rows;
+  }
+
+  return result;
+}
+
+std::vector<cv::Mat> featureToChunks(const std::vector<cv::Mat> &featureArray) {
+  std::vector<cv::Mat> audioChunks;
+  audioChunks.reserve(featureArray.size());
+
+  for (int i = 0; i < featureArray.size(); ++i) {
+    cv::Mat selectedFeature = getSlicedFeature(featureArray, i);
+    audioChunks.push_back(selectedFeature);
+  }
+
+  return audioChunks;
 }
 
 void visualizeFbank(const std::vector<std::vector<float>> &fbank_feature,
@@ -149,59 +300,84 @@ void printFeatureStats(const std::vector<cv::Mat> &wenetFeatures) {
   std::cout << "=== C++ WenetFeatures Statistics ===" << std::endl;
   std::cout << "Total features: " << wenetFeatures.size() << std::endl;
 
-  if (wenetFeatures.empty()) {
-    std::cout << "No features to analyze" << std::endl;
-    return;
+  // Helper function to calculate statistics
+  auto calculateStats = [](const cv::Mat &feature) {
+    cv::Scalar mean, stddev;
+    cv::meanStdDev(feature, mean, stddev);
+    double minVal, maxVal;
+    cv::minMaxLoc(feature, &minVal, &maxVal);
+    return std::make_tuple(mean[0], stddev[0], minVal, maxVal);
+  };
+
+  // Print first 5 values of a feature
+  auto printFirst5Values = [](const cv::Mat &feature) {
+    std::cout << "First 5 values: [";
+    const float *ptr = feature.ptr<float>(0); // 获取第一行
+    for (int i = 0; i < 5; ++i) {
+      std::cout << std::fixed << std::setprecision(6) << ptr[i];
+      if (i < 4)
+        std::cout << ", ";
+    }
+    std::cout << "]" << std::endl;
+  };
+
+  // First feature statistics
+  if (!wenetFeatures.empty()) {
+    const cv::Mat &firstFeature = wenetFeatures[0];
+    auto [firstMean, firstStd, firstMin, firstMax] =
+        calculateStats(firstFeature);
+
+    std::cout << "\nFirst feature shape: [" << firstFeature.rows << ", "
+              << firstFeature.cols << "]" << std::endl;
+    printFirst5Values(firstFeature);
+    std::cout << std::fixed << std::setprecision(6);
+    std::cout << "First feature mean: " << firstMean << std::endl;
+    std::cout << "First feature std: " << firstStd << std::endl;
+    std::cout << "First feature min: " << firstMin << std::endl;
+    std::cout << "First feature max: " << firstMax << std::endl;
   }
 
-  // 打印第一个特征的统计信息
-  const cv::Mat &firstFeature = wenetFeatures.front();
-  std::cout << "\nFirst feature shape: " << firstFeature.rows << "x"
-            << firstFeature.cols << std::endl;
+  // Middle feature statistics
+  if (wenetFeatures.size() > 31) {
+    const cv::Mat &middleFeature = wenetFeatures[31];
+    auto [middleMean, middleStd, middleMin, middleMax] =
+        calculateStats(middleFeature);
 
-  // 打印第一行前5个值
-  std::cout << "First feature first 5 values: ";
-  for (int i = 0; i < std::min(5, firstFeature.cols); ++i) {
-    std::cout << firstFeature.at<float>(0, i) << " ";
+    std::cout << "\nMiddle feature shape: [" << middleFeature.rows << ", "
+              << middleFeature.cols << "]" << std::endl;
+    printFirst5Values(middleFeature);
+    std::cout << std::fixed << std::setprecision(6);
+    std::cout << "Middle feature mean: " << middleMean << std::endl;
+    std::cout << "Middle feature std: " << middleStd << std::endl;
+    std::cout << "Middle feature min: " << middleMin << std::endl;
+    std::cout << "Middle feature max: " << middleMax << std::endl;
   }
-  std::cout << std::endl;
 
-  cv::Scalar mean, stddev;
-  cv::meanStdDev(firstFeature, mean, stddev);
-  double minVal, maxVal;
-  cv::minMaxLoc(firstFeature, &minVal, &maxVal);
+  // Last feature statistics
+  if (!wenetFeatures.empty()) {
+    const cv::Mat &lastFeature = wenetFeatures.back();
+    auto [lastMean, lastStd, lastMin, lastMax] = calculateStats(lastFeature);
 
-  std::cout << "First feature mean: " << std::fixed << std::setprecision(6)
-            << mean[0] << std::endl;
-  std::cout << "First feature std: " << stddev[0] << std::endl;
-  std::cout << "First feature min: " << minVal << std::endl;
-  std::cout << "First feature max: " << maxVal << std::endl;
-
-  // 打印最后一个特征的统计信息
-  const cv::Mat &middleFeature = wenetFeatures[31];
-  std::cout << "\nMiddle feature shape: " << middleFeature.rows << "x"
-            << middleFeature.cols << std::endl;
-
-  std::cout << "Middle feature first 5 values: ";
-  for (int i = 0; i < std::min(5, middleFeature.cols); ++i) {
-    std::cout << middleFeature.at<float>(0, i) << " ";
+    std::cout << "\nLast feature shape: [" << lastFeature.rows << ", "
+              << lastFeature.cols << "]" << std::endl;
+    printFirst5Values(lastFeature);
+    std::cout << std::fixed << std::setprecision(6);
+    std::cout << "Last feature mean: " << lastMean << std::endl;
+    std::cout << "Last feature std: " << lastStd << std::endl;
+    std::cout << "Last feature min: " << lastMin << std::endl;
+    std::cout << "Last feature max: " << lastMax << std::endl;
   }
-  std::cout << std::endl;
-
-  cv::meanStdDev(middleFeature, mean, stddev);
-  cv::minMaxLoc(middleFeature, &minVal, &maxVal);
-
-  std::cout << "Middle feature mean: " << mean[0] << std::endl;
-  std::cout << "Middle feature std: " << stddev[0] << std::endl;
-  std::cout << "Middle feature min: " << minVal << std::endl;
-  std::cout << "Middle feature max: " << maxVal << std::endl;
 }
 
 int main(int argc, char **argv) {
+  LipSyncLoggerSetLevel(2);
+
   fs::path dataDir = fs::path("data");
   fs::path audioPath = dataDir / "test.wav";
+  fs::path imagePath = dataDir / "image.jpg";
   fs::path modelDir = fs::path("models");
   fs::path wenetEncoderPath = modelDir / "wenet_encoder.onnx";
+  fs::path wavToLipPath = modelDir / "w2l_with_wenet.onnx";
 
   // Read and preprocess audio
   std::vector<float> audio = readAudioFile(audioPath.string());
@@ -223,14 +399,24 @@ int main(int argc, char **argv) {
   auto fbankFeatures = fbankComputer.Compute(preprocessedAudio);
   visualizeFbank(fbankFeatures, "fbank_features.png");
 
-  // Initialize WeNet encoder
-  AlgoBase algoBase;
-  algoBase.name = "wenet_encoder";
-  algoBase.modelPath = wenetEncoderPath.string();
+  // Initialize Engine
+  AlgoBase encoderAlgoBase;
+  encoderAlgoBase.name = "wenet_encoder";
+  encoderAlgoBase.modelPath = wenetEncoderPath.string();
 
-  dnn::WeNetEncoderInference wenetEncoder(algoBase);
+  dnn::WeNetEncoderInference wenetEncoder(encoderAlgoBase);
   if (!wenetEncoder.initialize()) {
     LOGGER_ERROR("Failed to initialize wenet encoder model");
+    return 1;
+  }
+
+  AlgoBase wavToLipAlgoBase;
+  wavToLipAlgoBase.name = "wavlip";
+  wavToLipAlgoBase.modelPath = wavToLipPath.string();
+
+  dnn::WavToLipInference wavToLip(wavToLipAlgoBase);
+  if (!wavToLip.initialize()) {
+    LOGGER_ERROR("Failed to initialize wav to lip model");
     return 1;
   }
 
@@ -238,6 +424,58 @@ int main(int argc, char **argv) {
   ModelInfo modelInfos;
   wenetEncoder.getModelInfo(modelInfos);
   prettyPrintModelInfos(modelInfos);
+
+  modelInfos.inputs.clear();
+  modelInfos.outputs.clear();
+  wavToLip.getModelInfo(modelInfos);
+  prettyPrintModelInfos(modelInfos);
+
+  std::vector<cv::Mat> wenetFeatures;
+  processWeNet(fbankFeatures, wenetFeatures, wenetEncoder);
+  // printFeatureStats(wenetFeatures);
+
+  std::vector<cv::Mat> audioChunks = featureToChunks(wenetFeatures);
+
+  // load face image
+  cv::Mat frame = cv::imread(imagePath.string());
+  if (frame.empty()) {
+    LOGGER_ERROR("Failed to load image");
+    return 1;
+  }
+  cv::Rect faceBbox(476, 832, 645 - 476, 1001 - 832);
+
+  // Preprocess face
+  FaceProcessor processor(160, 4);
+  ProcessedFaceData processed = processor.preProcess(frame, faceBbox);
+
+  printMatInfo(processed.xData, "processed.xData");
+  printMatInfo(processed.faceCropLarge, "processed.faceCropLarge");
+
+  WeNetInput wavToLipInput;
+  wavToLipInput.image = processed.xData;
+  wavToLipInput.audioFeature = audioChunks[0];
+
+  AlgoInput wavToLipInputParam;
+  wavToLipInputParam.setParams(wavToLipInput);
+
+  AlgoOutput wavToLipOutputParam;
+  WeNetOutput wavToLipOutput;
+  wavToLipOutputParam.setParams(wavToLipOutput);
+
+  if (!wavToLip.infer(wavToLipInputParam, wavToLipOutputParam)) {
+    LOGGER_ERROR("Failed to run wav to lip inference");
+    return 1;
+  }
+
+  auto *output = wavToLipOutputParam.getParams<WeNetOutput>();
+  if (output) {
+    std::cout << "Mel size: " << output->mel.size() << std::endl;
+  }
+
+  // post
+  cv::Mat postProcessedFrame =
+      processor.postProcess(output->mel, processed, frame);
+  cv::imwrite("post_processed_frame.png", postProcessedFrame);
 
   return 0;
 }
