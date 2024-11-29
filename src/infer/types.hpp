@@ -125,5 +125,7 @@ struct WeNetConfig {
   std::string modelPath;
 };
 
+struct ProcessUnit {};
+
 } // namespace lip_sync::infer
 #endif

@@ -5,6 +5,7 @@ ADD_SUBDIRECTORY(logger)
 ADD_SUBDIRECTORY(utils)
 ADD_SUBDIRECTORY(audio)
 ADD_SUBDIRECTORY(infer)
+ADD_SUBDIRECTORY(pipe)
 
 # transfer all headers to the include directory 
 FILE(MAKE_DIRECTORY ${PROJECT_INCLUDE_DIR})
