@@ -22,16 +22,17 @@ private:
   bool forward;
   int currentPos;
   int taskCount;
+  int directionChangeCount;
+  int lastChangePos;
+
+  void predictAndPreload();
 
 public:
   ImageCycler(const std::string &imageDir, size_t maxCacheSize);
 
   std::shared_ptr<cv::Mat> getNextImage();
-
   int getTaskCount() const { return taskCount; }
-
   size_t getCacheSize() const { return cache->getCacheSize(); }
-
   size_t getCachedImageCount() const { return cache->getCacheCount(); }
 };
 } // namespace lip_sync::pipe
