@@ -15,6 +15,7 @@ INCLUDE_DIRECTORIES(
 )
 
 LINK_LIBRARIES(
+    lip_sync
     infer
     audio
     module_logger
