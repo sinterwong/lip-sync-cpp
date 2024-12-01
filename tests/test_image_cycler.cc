@@ -1,4 +1,4 @@
-#include "lip_sync/image_cycler.hpp"
+#include "core/image_cycler.hpp"
 #include "logger/logger.hpp"
 #include <filesystem>
 #include <iostream>

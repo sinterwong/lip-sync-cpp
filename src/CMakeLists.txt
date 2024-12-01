@@ -2,9 +2,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.10)
 
 # submodule
 ADD_SUBDIRECTORY(logger)
+ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(utils)
 ADD_SUBDIRECTORY(audio)
-ADD_SUBDIRECTORY(infer)
 ADD_SUBDIRECTORY(pipe)
 
 # transfer all headers to the include directory 

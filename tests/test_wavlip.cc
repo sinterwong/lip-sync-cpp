@@ -9,11 +9,11 @@
  *
  */
 #include "audio/audio_processor.hpp"
-#include "infer/face_processor.hpp"
-#include "infer/fbank.hpp"
-#include "infer/feature_extractor.hpp"
-#include "infer/types.hpp"
-#include "infer/wavlip.hpp"
+#include "core/face_processor.hpp"
+#include "core/fbank.hpp"
+#include "core/feature_extractor.hpp"
+#include "core/types.hpp"
+#include "core/wavlip.hpp"
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
 #include <sndfile.h>

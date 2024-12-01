@@ -11,6 +11,7 @@ struct SDKConfig {
   std::string wavLipModelPath;  // 唇音同步模型路径
   std::string encoderModelPath; // 音频编码模型路径
   std::string frameDir;         // 帧路径
+  size_t maxCacheSize;          // 图片最大缓存(byte)
 };
 
 struct InputPacket {

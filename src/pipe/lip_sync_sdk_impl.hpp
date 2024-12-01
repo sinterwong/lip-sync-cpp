@@ -13,12 +13,14 @@
 #define __LIP_SYNC_SDK_IMPL_HPP__
 
 #include "api/types.h"
-#include "infer/dnn_infer.hpp"
-#include "infer/feature_extractor.hpp"
-#include "infer/types.hpp"
+#include "core/dnn_infer.hpp"
+#include "core/feature_extractor.hpp"
+#include "core/image_cycler.hpp"
+#include "core/types.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/thread_safe_queue.hpp"
 #include <atomic>
+#include <memory>
 
 namespace lip_sync {
 
@@ -46,12 +48,18 @@ private:
   // 状态控制
   std::atomic<bool> isRunning;
 
+  // 图片周期管理器
+  std::unique_ptr<pipe::ImageCycler> imageCycler;
+
 public:
   LipSyncSDKImpl();
   ErrorCode initialize(const SDKConfig &config);
   ErrorCode startProcess(const InputPacket &input);
   ErrorCode terminate();
   ErrorCode tryGetNext(OutputPacket &result);
+
+private:
+  // workflow functions
 };
 
 } // namespace lip_sync

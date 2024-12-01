@@ -26,7 +26,7 @@ FILE(GLOB_RECURSE CURRENT_DIR_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CUR
 ADD_LIBRARY(lip_sync SHARED ${CURRENT_DIR_SRCS})
 TARGET_INCLUDE_DIRECTORIES(lip_sync PRIVATE ${OpenCV_INCLUDE_DIRS} ${ONNXRUNTIME_INCLUDE_DIR} ${kissfft_INCLUDE_DIR} ${SndFile_INCLUDE_DIR}  ${PROJECT_INCLUDE_DIR})
 TARGET_LINK_LIBRARIES(lip_sync PRIVATE 
-											infer
+											core
 											audio
 											module_logger
 											${SndFile_LIBS}

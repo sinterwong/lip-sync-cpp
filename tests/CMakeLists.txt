@@ -16,8 +16,8 @@ INCLUDE_DIRECTORIES(
 
 LINK_LIBRARIES(
     lip_sync
-    infer
     audio
+    core
     module_logger
     ${SndFile_LIBS}
     ${kissfft_LIBS}
