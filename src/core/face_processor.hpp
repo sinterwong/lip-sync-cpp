@@ -23,6 +23,8 @@ public:
   cv::Mat postProcess(const std::vector<float> &prediction,
                       const ProcessedFaceData &data, cv::Mat &frame);
 
+  int getInputSize() { return inputSize_; }
+
 private:
   int inputSize_;
   int padSize_;

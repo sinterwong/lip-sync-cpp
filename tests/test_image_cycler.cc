@@ -14,16 +14,18 @@ const auto initLogger = []() -> decltype(auto) {
 int main() {
   fs::path dataDir = fs::path("data");
   fs::path imageDir = dataDir / "frames";
+  fs::path faceInfoPath = dataDir / "face_bboxes.json";
 
   if (!fs::exists(imageDir)) {
     std::cerr << "Image directory not found: " << imageDir << std::endl;
     return 1;
   }
 
-  ImageCycler cycler(imageDir.string(), 1024 * 1024 * 100); // 100MB cache
+  ImageCycler cycler(imageDir.string(), faceInfoPath.string(),
+                     1024 * 1024 * 100); // 100MB cache
 
   for (int i = 0; i < 500; ++i) {
-    auto image = cycler.getNextImage();
+    auto [image, bbox] = cycler.getNextImage();
     if (image) {
       std::cout << "Got image " << i
                 << ", cache size: " << cycler.getCacheSize()

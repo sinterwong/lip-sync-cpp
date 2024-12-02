@@ -12,6 +12,7 @@
 #ifndef __INFERENCE_TYPES_H__
 #define __INFERENCE_TYPES_H__
 
+#include <memory>
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <variant>
@@ -125,7 +126,18 @@ struct WeNetConfig {
   std::string modelPath;
 };
 
-struct ProcessUnit {};
+struct ProcessUnit {
+  std::string uuid;
+  int64_t sequence;
+
+  cv::Mat audioChunk;
+  ProcessedFaceData faceData;
+
+  std::shared_ptr<cv::Mat> originImage;
+
+  int64_t timestamp;
+  bool isLastChunk{false};
+};
 
 } // namespace lip_sync::infer
 #endif

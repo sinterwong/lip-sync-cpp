@@ -11,12 +11,16 @@
 
 #include "image_cycler.hpp"
 #include "logger/logger.hpp"
+#include "nlohmann/json.hpp"
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
+#include <utility>
 
 namespace lip_sync::pipe {
-ImageCycler::ImageCycler(const std::string &imageDir, size_t maxCacheSize)
+ImageCycler::ImageCycler(const std::string &imageDir,
+                         const std::string &faceInfoPath, size_t maxCacheSize)
     : forward(true), currentPos(0), taskCount(0), directionChangeCount(0),
       lastChangePos(0) {
 
@@ -42,7 +46,33 @@ ImageCycler::ImageCycler(const std::string &imageDir, size_t maxCacheSize)
               return getNumber(a) < getNumber(b);
             });
 
+  // parse json
+  getFaceBoxesInfo(faceInfoPath);
+
+  if (imagePaths.size() != bboxes.size()) {
+    LOGGER_ERROR("Image count and face box count mismatch");
+    throw std::runtime_error("Image count and face box count mismatch");
+  }
+
   cache = std::make_unique<ImageCache>(imagePaths, maxCacheSize);
+}
+
+void ImageCycler::getFaceBoxesInfo(const std::string &faceInfoPath) {
+  try {
+    std::ifstream faceInfoFile(faceInfoPath);
+    nlohmann::json faceInfo;
+    faceInfoFile >> faceInfo;
+    for (const auto &[key, val] : faceInfo.items()) {
+      std::array<int, 4> box;
+      for (size_t i = 0; i < val.size(); ++i) {
+        box[i] = val[i];
+      }
+      bboxes.push_back(box);
+    }
+  } catch (const std::exception &e) {
+    LOGGER_ERROR("Error parsing face info file: {}", e.what());
+    throw;
+  }
 }
 
 void ImageCycler::predictAndPreload() {
@@ -53,7 +83,8 @@ void ImageCycler::predictAndPreload() {
   }
 }
 
-std::shared_ptr<cv::Mat> ImageCycler::getNextImage() {
+std::pair<std::shared_ptr<cv::Mat>, std::array<int, 4>>
+ImageCycler::getNextImage() {
   predictAndPreload();
 
   int currentIndex = currentPos;
@@ -85,7 +116,8 @@ std::shared_ptr<cv::Mat> ImageCycler::getNextImage() {
     if (directionChanged) {
       cache->preloadWindow(currentPos, forward);
     }
-    return cache->getImage(currentIndex);
+    return std::make_pair(cache->getImage(currentIndex),
+                          bboxes.at(currentIndex));
   } catch (const std::exception &e) {
     LOGGER_ERROR("Error loading image: {}", e.what());
     throw;

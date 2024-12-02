@@ -64,5 +64,11 @@ inline void periodicTask(std::chrono::milliseconds interval, F &&f,
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
+
+inline int64_t getCurrentTimestamp() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
 } // namespace utils
 #endif

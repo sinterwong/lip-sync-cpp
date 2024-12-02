@@ -7,11 +7,14 @@
 namespace lip_sync {
 
 struct SDKConfig {
-  uint32_t numWorkers{4};       // 工作线程数量
+  uint32_t numWorkers{1};       // 工作线程数量
   std::string wavLipModelPath;  // 唇音同步模型路径
   std::string encoderModelPath; // 音频编码模型路径
   std::string frameDir;         // 帧路径
+  std::string faceInfoPath;     // 人脸信息路径
   size_t maxCacheSize;          // 图片最大缓存(byte)
+  uint32_t faceSize;            // 人脸图片尺寸
+  uint32_t facePad;             // 人脸图片填充
 };
 
 struct InputPacket {
@@ -20,6 +23,7 @@ struct InputPacket {
 };
 
 struct OutputPacket {
+  std::string uuid;               // 数据标识
   std::vector<uint8_t> frameData; // 生成的视频帧数据
   uint32_t width;                 // 帧宽度
   uint32_t height;                // 帧高度
