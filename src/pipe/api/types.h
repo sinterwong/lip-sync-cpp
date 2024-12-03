@@ -11,6 +11,7 @@ struct SDKConfig {
   std::string wavLipModelPath;  // 唇音同步模型路径
   std::string encoderModelPath; // 音频编码模型路径
   std::string frameDir;         // 帧路径
+  uint32_t frameRate;           // 帧率
   std::string faceInfoPath;     // 人脸信息路径
   size_t maxCacheSize;          // 图片最大缓存(byte)
   uint32_t faceSize;            // 人脸图片尺寸
@@ -41,7 +42,8 @@ enum class ErrorCode {
   INVALID_FILE_FORMAT = -3,
   INITIALIZATION_FAILED = -4,
   PROCESSING_ERROR = -5,
-  INVALID_STATE = -6
+  INVALID_STATE = -6,
+  TRY_GET_NEXT_OVERTIME = -7
 };
 } // namespace lip_sync
 #endif

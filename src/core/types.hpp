@@ -136,6 +136,8 @@ struct ProcessUnit {
   std::shared_ptr<cv::Mat> originImage;
 
   int64_t timestamp;
+  std::vector<float> audioSegment;
+
   bool isLastChunk{false};
 };
 

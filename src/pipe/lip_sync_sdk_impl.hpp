@@ -75,6 +75,20 @@ private:
   };
   ThreadSafeQueue<Task> taskQueue;
 
+  struct AudioData {
+    std::vector<float> samples;
+    std::string uuid;
+    int64_t timestamp;
+  };
+  std::map<std::string, AudioData> audioStorage;
+  std::mutex audioStorageMutex;
+
+  // 音频采样率
+  float audioSampleRate = 16000.0f;
+
+  // 每帧对应的音频采样点数
+  size_t samplesPerFrame;
+
 public:
   LipSyncSDKImpl();
   ErrorCode initialize(const SDKConfig &config);
@@ -85,7 +99,13 @@ public:
 private:
   void inputProcessLoop();
   void processLoop();
-  std::vector<cv::Mat> processAudioInput(const std::string &audioPath);
+  std::pair<std::vector<float>, std::vector<cv::Mat>>
+  processAudioInput(const std::string &audioPath);
+
+  void storeAudio(const std::string &uuid, std::vector<float> &&samples);
+
+  std::vector<float> getAudioSegment(const std::string &uuid,
+                                     size_t startFrame);
 };
 
 } // namespace lip_sync

@@ -105,4 +105,37 @@ MACRO(LOAD_ONNXRUNTIME)
         ${ONNXRUNTIME_LIBRARY_DIR}
     )
 
+MACRO(LOAD_FFMPEG)
+    FIND_FILE(FFMPEG_INCLUDE_DIR include ${3RDPARTY_DIR}/ffmpeg NO_DEFAULT_PATH)
+    FIND_FILE(FFMPEG_LIBRARY_DIR lib ${3RDPARTY_DIR}/ffmpeg NO_DEFAULT_PATH)
+    SET(FFMPEG_LIBS
+        avcodec
+        avdevice
+        avfilter
+        avformat
+        avutil
+        swresample
+        swscale
+        postproc
+        lzma
+        va
+        va-drm
+        va-x11
+        X11
+        vdpau
+        bz2
+    )
+
+    IF(FFMPEG_INCLUDE_DIR)
+        MESSAGE(STATUS "ffmpeg include path: ${FFMPEG_INCLUDE_DIR}")
+        MESSAGE(STATUS "ffmpeg libraries path: ${FFMPEG_LIBRARY_DIR}")
+        MESSAGE(STATUS "ffmpeg libraries : ${FFMPEG_LIBS}")
+    ELSE()
+        MESSAGE(FATAL_ERROR "FFMPEG_INCLUDE_DIR not found!")
+    ENDIF()
+    LINK_DIRECTORIES(
+        ${FFMPEG_LIBRARY_DIR}
+    )
+ENDMACRO()
+
 ENDMACRO()
