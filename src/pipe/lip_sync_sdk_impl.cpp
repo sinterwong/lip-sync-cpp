@@ -14,6 +14,7 @@
 #include "logger/logger.hpp"
 #include "utils/time_utils.hpp"
 #include "wav_lip_manager.hpp"
+#include <cmath>
 #include <opencv2/core/types.hpp>
 #include <string>
 
@@ -59,7 +60,7 @@ ErrorCode LipSyncSDKImpl::initialize(const SDKConfig &config) {
   faceProcessor =
       std::make_unique<FaceProcessor>(config.faceSize, config.facePad);
 
-  samplesPerFrame = (size_t)(audioSampleRate / config.frameRate);
+  samplesPerFrame = std::round(audioSampleRate / config.frameRate);
 
   isRunning.store(true);
   return ErrorCode::SUCCESS;
