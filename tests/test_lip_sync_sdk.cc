@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
   config.faceSize = 160;
   config.facePad = 4;
   config.maxCacheSize = 1024 * 1024 * 100;
-  config.frameRate = 24;
+  config.frameRate = 20;
 
   std::cout << "\nInitializing SDK with config:" << "\n - Workers: "
             << config.numWorkers << "\n - Face size: " << config.faceSize
@@ -233,8 +233,7 @@ int main(int argc, char **argv) {
   }
   std::string outputPath = outputDir + "/output.mp4";
   try {
-    VideoWriter::saveVideoWithAudio(frames, audioDatas, outputPath,
-                                    config.frameRate);
+    VideoWriter::saveVideoWithAudio(frames, audioDatas, outputPath);
     std::cout << "Successfully saved video to: " << outputPath << std::endl;
   } catch (const std::exception &e) {
     std::cerr << "Error saving video: " << e.what() << std::endl;

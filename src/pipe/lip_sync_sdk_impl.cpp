@@ -241,6 +241,11 @@ std::vector<float> LipSyncSDKImpl::getAudioSegment(const std::string &uuid,
   size_t startSample = startFrame * samplesPerFrame;
 
   auto &audioData = audioStorage[uuid];
+
+  if (startSample >= audioData.samples.size()) {
+    // 补0返回
+    return std::vector<float>(samplesPerFrame, 0.0f);
+  }
   return std::vector<float>(
       audioData.samples.begin() + startSample,
       audioData.samples.begin() +

@@ -48,33 +48,43 @@ std::vector<cv::Mat> FeatureExtractor::extractWenetFeatures(
   std::vector<cv::Mat> wenetFeatures;
   const int fbankFeatureLength = fbankFeatures.size();
 
-  if (fbankFeatureLength == 0) {
-    return wenetFeatures;
-  }
-
-  wenetFeatures.reserve((fbankFeatureLength + wenetConfig_.slidingStep - 1) /
-                        wenetConfig_.slidingStep);
-
+  // Initialize caches
   cv::Mat attCache = cv::Mat::zeros(3 * 8 * 16 * 128, 1, CV_32F);
   cv::Mat cnnCache = cv::Mat::zeros(3 * 1 * 512 * 14, 1, CV_32F);
   int offset = 100;
 
+  // Process features using sliding window
   int start = 0;
+  int end = 0;
 
-  while (start < fbankFeatureLength) {
-    int end = std::min(start + wenetConfig_.framesStride, fbankFeatureLength);
+  while (end < fbankFeatureLength) {
+    end = start + wenetConfig_.framesStride;
 
-    cv::Mat chunkFeat(wenetConfig_.framesStride * wenetConfig_.numFeatures, 1,
-                      CV_32F);
+    // Prepare chunk feature
+    cv::Mat chunkFeat;
+    if (end <= fbankFeatureLength) {
+      chunkFeat = cv::Mat(wenetConfig_.framesStride * wenetConfig_.numFeatures,
+                          1, CV_32F);
 
-    for (int i = 0; i < wenetConfig_.framesStride; i++) {
-      if (start + i < fbankFeatureLength) {
-        std::memcpy(chunkFeat.ptr<float>() + i * wenetConfig_.numFeatures,
-                    fbankFeatures[start + i].data(),
-                    wenetConfig_.numFeatures * sizeof(float));
-      } else {
-        std::memset(chunkFeat.ptr<float>() + i * wenetConfig_.numFeatures, 0,
-                    wenetConfig_.numFeatures * sizeof(float));
+      for (int i = start; i < end; i++) {
+        if (i < fbankFeatureLength) {
+          std::memcpy(chunkFeat.ptr<float>() +
+                          (i - start) * wenetConfig_.numFeatures,
+                      fbankFeatures[i].data(),
+                      wenetConfig_.numFeatures * sizeof(float));
+        } else {
+          std::memset(chunkFeat.ptr<float>() +
+                          (i - start) * wenetConfig_.numFeatures,
+                      0, wenetConfig_.numFeatures * sizeof(float));
+        }
+      }
+    } else {
+      chunkFeat = cv::Mat(wenetConfig_.framesStride * wenetConfig_.numFeatures,
+                          1, CV_32F, cv::Scalar(0));
+      for (int i = start; i < fbankFeatureLength; i++) {
+        std::memcpy(
+            chunkFeat.ptr<float>() + (i - start) * wenetConfig_.numFeatures,
+            fbankFeatures[i].data(), wenetConfig_.numFeatures * sizeof(float));
       }
     }
 
@@ -102,7 +112,9 @@ std::vector<cv::Mat> FeatureExtractor::extractWenetFeatures(
 
       for (int i = 0; i < 16; i++) {
         float *dstRow = outputFeature.ptr<float>(i);
-        std::memcpy(dstRow, srcData + i * 512, 512 * sizeof(float));
+        for (int j = 0; j < 512; j++) {
+          dstRow[j] = srcData[i * 512 + j];
+        }
       }
       wenetFeatures.push_back(outputFeature);
     }
