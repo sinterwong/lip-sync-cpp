@@ -1,4 +1,4 @@
-#include "api/lip_sync_sdk.h"
+#include "lip_sync_sdk.h"
 #include "lip_sync_sdk_impl.hpp"
 #include <string>
 

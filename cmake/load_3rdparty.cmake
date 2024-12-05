@@ -104,6 +104,7 @@ MACRO(LOAD_ONNXRUNTIME)
     LINK_DIRECTORIES(
         ${ONNXRUNTIME_LIBRARY_DIR}
     )
+ENDMACRO()
 
 MACRO(LOAD_FFMPEG)
     FIND_FILE(FFMPEG_INCLUDE_DIR include ${3RDPARTY_DIR}/ffmpeg NO_DEFAULT_PATH)
@@ -138,4 +139,13 @@ MACRO(LOAD_FFMPEG)
     )
 ENDMACRO()
 
+MACRO(LOAD_ANDROID_ENV)
+    SET(ANDROID_JIN_INCLUDE_DIR "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include")
+    SET(ANDROID_JIN_LIBS_DIR "${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${TARGET_ARCH}-linux-android/24")
+    SET(ANDROID_JIN_LIBS 
+        android
+        log
+    )
+
+    LINK_DIRECTORIES(${ANDROID_JIN_LIBS_DIR})
 ENDMACRO()

@@ -12,11 +12,11 @@
 #ifndef __LIP_SYNC_SDK_IMPL_HPP__
 #define __LIP_SYNC_SDK_IMPL_HPP__
 
-#include "api/types.h"
 #include "core/face_processor.hpp"
 #include "core/feature_extractor.hpp"
 #include "core/image_cycler.hpp"
 #include "core/types.hpp"
+#include "types.h"
 #include "utils/thread_pool.hpp"
 #include "utils/thread_safe_queue.hpp"
 #include "wav_lip_manager.hpp"
