@@ -20,11 +20,6 @@
 
 namespace lip_sync {
 
-const auto initLogger = []() -> decltype(auto) {
-  LipSyncLoggerInit(true, true, true, true);
-  return true;
-}();
-
 using namespace lip_sync::infer;
 LipSyncSDKImpl::LipSyncSDKImpl() : isRunning(false) {}
 

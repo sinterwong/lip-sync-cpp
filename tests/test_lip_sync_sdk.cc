@@ -8,6 +8,11 @@
 #include <opencv2/opencv.hpp>
 #include <sstream>
 
+const auto initLogger = []() -> decltype(auto) {
+  LipSyncLoggerInit(true, true, true, true);
+  return true;
+}();
+
 class VideoWriter {
 public:
   static void saveVideoWithAudio(const std::vector<cv::Mat> &frames,
