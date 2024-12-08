@@ -11,7 +11,6 @@
 #include "lip_sync_sdk_impl.hpp"
 #include "audio/audio_processor.hpp"
 #include "core/types.hpp"
-#include "logger/logger.hpp"
 #include "utils/time_utils.hpp"
 #include "wav_lip_manager.hpp"
 #include <cmath>
@@ -28,7 +27,8 @@ ErrorCode LipSyncSDKImpl::initialize(const SDKConfig &config) {
   featureExtractor =
       std::make_unique<FeatureExtractor>(FbankConfig{}, wenetConfig);
   if (!featureExtractor->initialize()) {
-    LOGGER_ERROR("Failed to initialize feature extractor");
+    // LOGGER_ERROR("Failed to initialize feature extractor");
+    std::cerr << "Failed to initialize feature extractor" << std::endl;
     return ErrorCode::INITIALIZATION_FAILED;
   }
 
@@ -43,7 +43,8 @@ ErrorCode LipSyncSDKImpl::initialize(const SDKConfig &config) {
                  .modelPath = config.wavLipModelPath});
 
     if (!model->initialize()) {
-      LOGGER_ERROR("Failed to initialize wav to lip model {}", i);
+      // LOGGER_ERROR("Failed to initialize wav to lip model {}", i);
+      std::cerr << "Failed to initialize wav to lip model " << i << std::endl;
       return ErrorCode::INITIALIZATION_FAILED;
     }
     modelInstances.push_back(std::move(model));
@@ -183,7 +184,8 @@ void LipSyncSDKImpl::processLoop() {
     algoOutput.setParams(wenetOutput);
 
     if (!model->infer(algoInput, algoOutput)) {
-      LOGGER_ERROR("Failed to run wav to lip inference");
+      // LOGGER_ERROR("Failed to run wav to lip inference");
+      std::cerr << "Failed to run wav to lip inference" << std::endl;
       continue;
     }
 
@@ -192,7 +194,8 @@ void LipSyncSDKImpl::processLoop() {
 
     auto *output = algoOutput.getParams<WeNetOutput>();
     if (!output) {
-      LOGGER_ERROR("Failed to get wav to lip output");
+      // LOGGER_ERROR("Failed to get wav to lip output");
+      std::cerr << "Failed to get wav to lip output" << std::endl;
       continue;
     }
 

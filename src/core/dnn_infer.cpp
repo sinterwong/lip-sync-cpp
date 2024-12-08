@@ -10,7 +10,7 @@
  */
 
 #include "dnn_infer.hpp"
-#include "logger/logger.hpp"
+// #include "logger/logger.hpp"
 
 namespace lip_sync::infer::dnn {
 bool AlgoInference::initialize() {
@@ -68,10 +68,13 @@ bool AlgoInference::initialize() {
 
     return true;
   } catch (const Ort::Exception &e) {
-    LOGGER_ERROR("ONNX Runtime error during initialization: {}", e.what());
+    // LOGGER_ERROR("ONNX Runtime error during initialization: {}", e.what());
+    std::cerr << "ONNX Runtime error during initialization: " << e.what()
+              << std::endl;
     return false;
   } catch (const std::exception &e) {
-    LOGGER_ERROR("Error during initialization: {}", e.what());
+    // LOGGER_ERROR("Error during initialization: {}", e.what());
+    std::cerr << "Error during initialization: " << e.what() << std::endl;
     return false;
   }
 }
@@ -90,7 +93,8 @@ void AlgoInference::terminate() {
     outputNames.clear();
     outputShapes.clear();
   } catch (const std::exception &e) {
-    LOGGER_ERROR("Error during termination: {}", e.what());
+    // LOGGER_ERROR("Error during termination: {}", e.what());
+    std::cerr << "Error during termination: " << e.what() << std::endl;
   }
 }
 
@@ -102,7 +106,8 @@ std::shared_ptr<ModelInfo> AlgoInference::getModelInfo() {
 
   modelInfo->name = mParams.name;
   if (!session) {
-    LOGGER_ERROR("Session is not initialized");
+    // LOGGER_ERROR("Session is not initialized");
+    std::cerr << "Session is not initialized" << std::endl;
     return nullptr;
   }
 
@@ -131,9 +136,13 @@ std::shared_ptr<ModelInfo> AlgoInference::getModelInfo() {
       }
     }
   } catch (const Ort::Exception &e) {
-    LOGGER_ERROR("ONNX Runtime error during getting model info: {}", e.what());
+    // LOGGER_ERROR("ONNX Runtime error during getting model info: {}",
+    // e.what());
+    std::cerr << "ONNX Runtime error during getting model info: " << e.what()
+              << std::endl;
   } catch (const std::exception &e) {
-    LOGGER_ERROR("Error during getting model info: {}", e.what());
+    // LOGGER_ERROR("Error during getting model info: {}", e.what());
+    std::cerr << "Error during getting model info: " << e.what() << std::endl;
   }
   return modelInfo;
 }

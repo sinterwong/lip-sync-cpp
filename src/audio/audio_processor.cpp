@@ -10,8 +10,9 @@
  */
 
 #include "audio_processor.hpp"
-#include "logger/logger.hpp"
+// #include "logger/logger.hpp"
 #include <algorithm>
+#include <iostream>
 #include <sndfile.h>
 
 namespace lip_sync::audio {
@@ -23,7 +24,9 @@ std::vector<float> AudioProcessor::readAudio(const std::string &filePath) {
   SNDFILE *sndfile = sf_open(filePath.c_str(), SFM_READ, &sfinfo);
 
   if (!sndfile) {
-    LOGGER_ERROR("Could not open audio file: {}", sf_strerror(sndfile));
+    // LOGGER_ERROR("Could not open audio file: {}", sf_strerror(sndfile));
+    std::cerr << "Could not open audio file: " << sf_strerror(nullptr)
+              << std::endl;
     return {};
   }
 

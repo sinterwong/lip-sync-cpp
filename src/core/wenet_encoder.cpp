@@ -9,7 +9,7 @@
  *
  */
 #include "wenet_encoder.hpp"
-#include "logger/logger.hpp"
+// #include "logger/logger.hpp"
 
 namespace lip_sync::infer::dnn {
 
@@ -30,14 +30,15 @@ bool WeNetEncoderInference::infer(AlgoInput &input, AlgoOutput &output) {
     std::vector<float> chunkData;
     cv::Mat chunk = encoderInput->chunk;
     if (chunk.empty() || chunk.type() != CV_32F) {
-      LOGGER_ERROR("Invalid chunk data");
+      // LOGGER_ERROR("Invalid chunk data");
+      std::cerr << "Invalid chunk data" << std::endl;
       return false;
     }
 
     // Convert Mat to float vector using total() for all dimensions
     chunkData.assign((float *)chunk.data, (float *)chunk.data + chunk.total());
 
-    LOGGER_DEBUG("Chunk data size: {}", chunkData.size());
+    // LOGGER_DEBUG("Chunk data size: {}", chunkData.size());
 
     std::vector<float> attCacheData;
     cv::Mat attCache = encoderInput->attCache;
@@ -45,7 +46,7 @@ bool WeNetEncoderInference::infer(AlgoInput &input, AlgoOutput &output) {
       attCacheData.assign((float *)attCache.data,
                           (float *)attCache.data + attCache.total());
     }
-    LOGGER_DEBUG("AttCache data size: {}", attCacheData.size());
+    // LOGGER_DEBUG("AttCache data size: {}", attCacheData.size());
 
     std::vector<float> cnnCacheData;
     cv::Mat cnnCache = encoderInput->cnnCache;
@@ -53,16 +54,16 @@ bool WeNetEncoderInference::infer(AlgoInput &input, AlgoOutput &output) {
       cnnCacheData.assign((float *)cnnCache.data,
                           (float *)cnnCache.data + cnnCache.total());
     }
-    LOGGER_DEBUG("CNNCache data size: {}", cnnCacheData.size());
+    // LOGGER_DEBUG("CNNCache data size: {}", cnnCacheData.size());
 
     // Create input tensors
     inputTensors.clear();
 
     // Print shape information for debugging
-    LOGGER_DEBUG("Input shape 0 size: {}", inputShape[0].size());
-    for (size_t i = 0; i < inputShape[0].size(); ++i) {
-      LOGGER_DEBUG("Input shape 0[{}]: {}", i, inputShape[0][i]);
-    }
+    // LOGGER_DEBUG("Input shape 0 size: {}", inputShape[0].size());
+    // for (size_t i = 0; i < inputShape[0].size(); ++i) {
+    // LOGGER_DEBUG("Input shape 0[{}]: {}", i, inputShape[0][i]);
+    // }
 
     // Add chunk tensor
     inputTensors.emplace_back(Ort::Value::CreateTensor<float>(
@@ -89,7 +90,7 @@ bool WeNetEncoderInference::infer(AlgoInput &input, AlgoOutput &output) {
           inputShape[3].data(), inputShape[3].size()));
     }
 
-    LOGGER_DEBUG("Number of input tensors created: {}", inputTensors.size());
+    // LOGGER_DEBUG("Number of input tensors created: {}", inputTensors.size());
 
     // Convert input/output names to const char* array
     std::vector<const char *> input_names_ptr;
@@ -109,8 +110,10 @@ bool WeNetEncoderInference::infer(AlgoInput &input, AlgoOutput &output) {
 
     // Process output tensors
     if (outputTensors.size() != 3) {
-      LOGGER_ERROR("Unexpected number of output tensors: {}",
-                   outputTensors.size());
+      // LOGGER_ERROR("Unexpected number of output tensors: {}",
+      //              outputTensors.size());
+      std::cerr << "Unexpected number of output tensors: "
+                << outputTensors.size() << std::endl;
       return false;
     }
 
@@ -134,10 +137,13 @@ bool WeNetEncoderInference::infer(AlgoInput &input, AlgoOutput &output) {
 
     return true;
   } catch (const Ort::Exception &e) {
-    LOGGER_ERROR("ONNX Runtime error during inference: {}", e.what());
+    // LOGGER_ERROR("ONNX Runtime error during inference: {}", e.what());
+    std::cerr << "ONNX Runtime error during inference: " << e.what()
+              << std::endl;
     return false;
   } catch (const std::exception &e) {
-    LOGGER_ERROR("Error during inference: {}", e.what());
+    // LOGGER_ERROR("Error during inference: {}", e.what());
+    std::cerr << "Error during inference: " << e.what() << std::endl;
     return false;
   }
 }

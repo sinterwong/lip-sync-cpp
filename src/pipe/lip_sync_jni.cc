@@ -1,6 +1,5 @@
 #include "api/lip_sync_jni.h"
 #include "lip_sync_sdk.h"
-#include "logger/logger.hpp"
 #include <android/log.h>
 #include <vector>
 
@@ -50,20 +49,20 @@ static jfloatArray vector_float_to_jfloatArray(JNIEnv *env,
 JNIEXPORT jlong JNICALL
 Java_com_example_lipsync_LipSyncSDK_nativeCreate(JNIEnv *env, jclass clazz) {
 
-  const auto initLogger = []() -> decltype(auto) {
-    auto ret = mkdir("logs", 0777);
-    if (ret == -1) {
-      LOGE("Failed to create logs directory");
-      return false;
-    }
-    LipSyncLoggerInit(true, true, true, true);
-    return true;
-  }();
+  // const auto initLogger = []() -> decltype(auto) {
+  //   auto ret = mkdir("logs", 0777);
+  //   if (ret == -1) {
+  //     LOGE("Failed to create logs directory");
+  //     return false;
+  //   }
+  //   LipSyncLoggerInit(true, true, true, true);
+  //   return true;
+  // }();
 
-  if (!initLogger) {
-    LOGE("Failed to initialize logger");
-    return 0;
-  }
+  // if (!initLogger) {
+  //   LOGE("Failed to initialize logger");
+  //   return 0;
+  // }
 
   try {
     auto *sdk = new LipSyncSDK();

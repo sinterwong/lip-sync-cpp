@@ -39,7 +39,7 @@ TARGET_INCLUDE_DIRECTORIES(lip_sync PRIVATE ${OpenCV_INCLUDE_DIRS} ${ONNXRUNTIME
 TARGET_LINK_LIBRARIES(lip_sync PRIVATE 
 											core
 											audio
-											module_logger
+											# module_logger
 											${SndFile_LIBS}
 											${kissfft_LIBS}
 											${ONNXRUNTIME_LIBS}

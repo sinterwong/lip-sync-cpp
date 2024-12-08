@@ -10,7 +10,7 @@
  */
 
 #include "image_cycler.hpp"
-#include "logger/logger.hpp"
+// #include "logger/logger.hpp"
 #include "nlohmann/json.hpp"
 
 #include <algorithm>
@@ -50,7 +50,8 @@ ImageCycler::ImageCycler(const std::string &imageDir,
   getFaceBoxesInfo(faceInfoPath);
 
   if (imagePaths.size() != bboxes.size()) {
-    LOGGER_ERROR("Image count and face box count mismatch");
+    // LOGGER_ERROR("Image count and face box count mismatch");
+    std::cerr << "Image count and face box count mismatch" << std::endl;
     throw std::runtime_error("Image count and face box count mismatch");
   }
 
@@ -70,7 +71,8 @@ void ImageCycler::getFaceBoxesInfo(const std::string &faceInfoPath) {
       bboxes.push_back(box);
     }
   } catch (const std::exception &e) {
-    LOGGER_ERROR("Error parsing face info file: {}", e.what());
+    // LOGGER_ERROR("Error parsing face info file: {}", e.what());
+    std::cerr << "Error parsing face info file: " << e.what() << std::endl;
     throw;
   }
 }
@@ -119,7 +121,8 @@ ImageCycler::getNextImage() {
     return std::make_pair(cache->getImage(currentIndex),
                           bboxes.at(currentIndex));
   } catch (const std::exception &e) {
-    LOGGER_ERROR("Error loading image: {}", e.what());
+    // LOGGER_ERROR("Error loading image: {}", e.what());
+    std::cerr << "Error loading image: " << e.what() << std::endl;
     throw;
   }
 }

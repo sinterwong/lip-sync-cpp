@@ -9,7 +9,7 @@
  *
  */
 #include "wavlip.hpp"
-#include "logger/logger.hpp"
+// #include "logger/logger.hpp"
 #include "types.hpp"
 
 namespace lip_sync::infer::dnn {
@@ -18,13 +18,15 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
   // Get input parameters
   auto *wavToLipInput = input.getParams<WeNetInput>();
   if (!wavToLipInput) {
-    LOGGER_ERROR("Invalid input parameters");
+    // LOGGER_ERROR("Invalid input parameters");
+    std::cerr << "Invalid input parameters" << std::endl;
     return false;
   }
 
   auto *wavToLipOutput = output.getParams<WeNetOutput>();
   if (!wavToLipOutput) {
-    LOGGER_ERROR("Invalid output parameters");
+    // LOGGER_ERROR("Invalid output parameters");
+    std::cerr << "Invalid output parameters" << std::endl;
     return false;
   }
 
@@ -34,7 +36,8 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
 
     // Process image data
     if (wavToLipInput->image.empty() || wavToLipInput->image.type() != CV_32F) {
-      LOGGER_ERROR("Invalid image data");
+      // LOGGER_ERROR("Invalid image data");
+      std::cerr << "Invalid image data" << std::endl;
       return false;
     }
 
@@ -43,15 +46,15 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
     if (imageShape[0] == -1) { // Replace dynamic batch size with 1
       imageShape[0] = 1;
     }
-    LOGGER_DEBUG("Actual image tensor shape: {}x{}x{}x{}", imageShape[0],
-                 imageShape[1], imageShape[2], imageShape[3]);
+    // LOGGER_DEBUG("Actual image tensor shape: {}x{}x{}x{}", imageShape[0],
+    //              imageShape[1], imageShape[2], imageShape[3]);
 
     std::vector<int64_t> audioShape = inputShape[1]; // Copy the original shape
     if (audioShape[0] == -1) { // Replace dynamic batch size with 1
       audioShape[0] = 1;
     }
-    LOGGER_DEBUG("Actual audio tensor shape: {}x{}x{}x{}", audioShape[0],
-                 audioShape[1], audioShape[2], audioShape[3]);
+    // LOGGER_DEBUG("Actual audio tensor shape: {}x{}x{}x{}", audioShape[0],
+    //              audioShape[1], audioShape[2], audioShape[3]);
 
     // Create input tensors with corrected shapes
     inputTensors.emplace_back(Ort::Value::CreateTensor<float>(
@@ -62,7 +65,8 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
     // Process audio feature data
     if (wavToLipInput->audioFeature.empty() ||
         wavToLipInput->audioFeature.type() != CV_32F) {
-      LOGGER_ERROR("Invalid audio feature data");
+      // LOGGER_ERROR("Invalid audio feature data");
+      std::cerr << "Invalid audio feature data" << std::endl;
       return false;
     }
 
@@ -71,7 +75,7 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
         wavToLipInput->audioFeature.total(), audioShape.data(),
         audioShape.size()));
 
-    LOGGER_DEBUG("Number of input tensors created: {}", inputTensors.size());
+    // LOGGER_DEBUG("Number of input tensors created: {}", inputTensors.size());
 
     // Convert input/output names to const char* array
     std::vector<const char *> inputNamesPtr;
@@ -91,7 +95,8 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
 
     // Process output tensors
     if (outputTensors.empty()) {
-      LOGGER_ERROR("No output tensors produced");
+      // LOGGER_ERROR("No output tensors produced");
+      std::cerr << "No output tensors produced" << std::endl;
       return false;
     }
 
@@ -103,15 +108,18 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
     // Assign output data to mel vector
     wavToLipOutput->mel.assign(outData, outData + outSize);
 
-    LOGGER_DEBUG("Output mel size: {}", wavToLipOutput->mel.size());
+    // LOGGER_DEBUG("Output mel size: {}", wavToLipOutput->mel.size());
 
     return true;
 
   } catch (const Ort::Exception &e) {
-    LOGGER_ERROR("ONNX Runtime error during inference: {}", e.what());
+    // LOGGER_ERROR("ONNX Runtime error during inference: {}", e.what());
+    std::cerr << "ONNX Runtime error during inference: " << e.what()
+              << std::endl;
     return false;
   } catch (const std::exception &e) {
-    LOGGER_ERROR("Error during inference: {}", e.what());
+    // LOGGER_ERROR("Error during inference: {}", e.what());
+    std::cerr << "Error during inference: " << e.what() << std::endl;
     return false;
   }
 }
