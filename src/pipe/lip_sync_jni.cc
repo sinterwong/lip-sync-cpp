@@ -134,6 +134,7 @@ JNIEXPORT jint JNICALL Java_com_example_lipsync_LipSyncSDK_nativeStartProcess(
 
     // 获取 InputPacket 类的字段 ID
     jclass inputClass = env->GetObjectClass(input);
+    jfieldID audioDataField = env->GetFieldID(inputClass, "audioData", "[F");
     jfieldID audioPathField =
         env->GetFieldID(inputClass, "audioPath", "Ljava/lang/String;");
     jfieldID uuidField =
@@ -141,6 +142,12 @@ JNIEXPORT jint JNICALL Java_com_example_lipsync_LipSyncSDK_nativeStartProcess(
 
     // 构建 C++ InputPacket 对象
     InputPacket inputPacket;
+    jfloatArray audioData =
+        (jfloatArray)env->GetObjectField(input, audioDataField);
+    jsize audioDataSize = env->GetArrayLength(audioData);
+    inputPacket.audioData.resize(audioDataSize);
+    env->GetFloatArrayRegion(audioData, 0, audioDataSize,
+                             inputPacket.audioData.data());
     inputPacket.audioPath = jstring2string(
         env, (jstring)env->GetObjectField(input, audioPathField));
     inputPacket.uuid =

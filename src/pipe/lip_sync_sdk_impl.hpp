@@ -102,6 +102,9 @@ private:
   std::pair<std::vector<float>, std::vector<cv::Mat>>
   processAudioInput(const std::string &audioPath);
 
+  std::pair<std::vector<float>, std::vector<cv::Mat>>
+  processAudioInput(const std::vector<float> &audio);
+
   void storeAudio(const std::string &uuid, std::vector<float> &&samples);
 
   std::vector<float> getAudioSegment(const std::string &uuid,
