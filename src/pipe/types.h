@@ -19,8 +19,9 @@ struct SDKConfig {
 };
 
 struct InputPacket {
-  std::string audioPath; // 音频文件
-  std::string uuid;      // 数据标识
+  std::vector<float> audioData; // 音频数据
+  std::string audioPath;        // 音频文件
+  std::string uuid;             // 数据标识
 };
 
 struct OutputPacket {

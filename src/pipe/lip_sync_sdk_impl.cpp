@@ -114,7 +114,9 @@ void LipSyncSDKImpl::inputProcessLoop() {
       continue;
     }
     input = std::move(*result);
-    auto [audio, audioChunks] = processAudioInput(input.audioPath);
+    auto [audio, audioChunks] = input.audioData.empty()
+                                    ? processAudioInput(input.audioPath)
+                                    : processAudioInput(input.audioData);
     storeAudio(input.uuid, std::move(audio));
 
     if (audioChunks.empty())
@@ -225,6 +227,19 @@ LipSyncSDKImpl::processAudioInput(const std::string &audioPath) {
     return {};
   }
 
+  auto preprocessedAudio = audioProcessor.preprocess(audio);
+  auto fbankFeatures = featureExtractor->computeFbank(preprocessedAudio);
+  auto wenetFeatures = featureExtractor->extractWenetFeatures(fbankFeatures);
+  return {audio, featureExtractor->convertToChunks(wenetFeatures)};
+}
+
+std::pair<std::vector<float>, std::vector<cv::Mat>>
+LipSyncSDKImpl::processAudioInput(const std::vector<float> &audio) {
+  if (audio.empty()) {
+    return {};
+  }
+
+  audio::AudioProcessor audioProcessor;
   auto preprocessedAudio = audioProcessor.preprocess(audio);
   auto fbankFeatures = featureExtractor->computeFbank(preprocessedAudio);
   auto wenetFeatures = featureExtractor->extractWenetFeatures(fbankFeatures);

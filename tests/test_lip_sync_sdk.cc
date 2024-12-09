@@ -1,3 +1,4 @@
+#include "audio/audio_processor.hpp"
 #include "lip_sync/lip_sync_sdk.h"
 #include "logger/logger.hpp"
 #include "sndfile.h"
@@ -199,7 +200,9 @@ int main(int argc, char **argv) {
   std::cout << "SDK initialized successfully" << std::endl;
 
   lip_sync::InputPacket input;
-  input.audioPath = "data/test.wav";
+  auto inputAudioPath = "data/test.wav";
+  lip_sync::audio::AudioProcessor audioProcessor;
+  input.audioData = audioProcessor.readAudio(inputAudioPath);
   input.uuid = "test_" + getTimestamp();
 
   std::cout << "\nStarting process with:" << "\n - Audio: " << input.audioPath
