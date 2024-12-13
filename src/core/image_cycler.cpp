@@ -10,7 +10,6 @@
  */
 
 #include "image_cycler.hpp"
-// #include "logger/logger.hpp"
 #include "nlohmann/json.hpp"
 
 #include <algorithm>

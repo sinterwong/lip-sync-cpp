@@ -9,13 +9,11 @@
  *
  */
 #include "wavlip.hpp"
-// #include "logger/logger.hpp"
 #include "types.hpp"
 
 namespace lip_sync::infer::dnn {
 
 bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
-  // Get input parameters
   auto *wavToLipInput = input.getParams<WeNetInput>();
   if (!wavToLipInput) {
     // LOGGER_ERROR("Invalid input parameters");
@@ -31,17 +29,14 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
   }
 
   try {
-    // Prepare input tensors
     inputTensors.clear();
 
-    // Process image data
     if (wavToLipInput->image.empty() || wavToLipInput->image.type() != CV_32F) {
       // LOGGER_ERROR("Invalid image data");
       std::cerr << "Invalid image data" << std::endl;
       return false;
     }
 
-    // Create shape vectors for actual inference
     std::vector<int64_t> imageShape = inputShape[0]; // Copy the original shape
     if (imageShape[0] == -1) { // Replace dynamic batch size with 1
       imageShape[0] = 1;
@@ -56,13 +51,11 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
     // LOGGER_DEBUG("Actual audio tensor shape: {}x{}x{}x{}", audioShape[0],
     //              audioShape[1], audioShape[2], audioShape[3]);
 
-    // Create input tensors with corrected shapes
     inputTensors.emplace_back(Ort::Value::CreateTensor<float>(
         *memoryInfo, (float *)wavToLipInput->image.data,
         wavToLipInput->image.total() * wavToLipInput->image.channels(),
         imageShape.data(), imageShape.size()));
 
-    // Process audio feature data
     if (wavToLipInput->audioFeature.empty() ||
         wavToLipInput->audioFeature.type() != CV_32F) {
       // LOGGER_ERROR("Invalid audio feature data");
@@ -77,7 +70,6 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
 
     // LOGGER_DEBUG("Number of input tensors created: {}", inputTensors.size());
 
-    // Convert input/output names to const char* array
     std::vector<const char *> inputNamesPtr;
     std::vector<const char *> outputNamesPtr;
 
@@ -88,24 +80,20 @@ bool WavToLipInference::infer(AlgoInput &input, AlgoOutput &output) {
       outputNamesPtr.push_back(name.c_str());
     }
 
-    // Run inference
     outputTensors = session->Run(Ort::RunOptions{nullptr}, inputNamesPtr.data(),
                                  inputTensors.data(), inputTensors.size(),
                                  outputNamesPtr.data(), outputNamesPtr.size());
 
-    // Process output tensors
     if (outputTensors.empty()) {
       // LOGGER_ERROR("No output tensors produced");
       std::cerr << "No output tensors produced" << std::endl;
       return false;
     }
 
-    // Get output data
     float *outData = outputTensors[0].GetTensorMutableData<float>();
     size_t outSize =
         outputTensors[0].GetTensorTypeAndShapeInfo().GetElementCount();
 
-    // Assign output data to mel vector
     wavToLipOutput->mel.assign(outData, outData + outSize);
 
     // LOGGER_DEBUG("Output mel size: {}", wavToLipOutput->mel.size());

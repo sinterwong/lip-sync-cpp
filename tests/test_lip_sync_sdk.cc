@@ -24,11 +24,9 @@ public:
       throw std::runtime_error("No frames to write");
     }
 
-    // 创建临时目录
     std::string tempDir = "temp_frames_" + std::to_string(std::time(nullptr));
     std::filesystem::create_directories(tempDir);
 
-    // 保存音频文件
     std::string audioPath = tempDir + "/audio.raw";
     FILE *audioFile = fopen(audioPath.c_str(), "wb");
     if (audioFile) {
@@ -36,7 +34,6 @@ public:
       fclose(audioFile);
     }
 
-    // 保存帧
     for (size_t i = 0; i < frames.size(); ++i) {
       std::stringstream ss;
       ss << tempDir << "/frame_" << std::setw(6) << std::setfill('0') << i
@@ -45,35 +42,32 @@ public:
       std::cout << "Saved frame " << i + 1 << "/" << frames.size() << std::endl;
     }
 
-    // 使用 mjpeg 编码器的 FFmpeg 命令，它支持高分辨率
-    std::string ffmpeg_cmd =
-        "ffmpeg -y "
-        "-framerate " +
-        std::to_string(frameRate) +
-        " "
-        "-i " +
-        tempDir +
-        "/frame_%06d.png "
-        "-f f32le -ar " +
-        std::to_string(sampleRate) +
-        " -ac 1 "
-        "-i " +
-        audioPath +
-        " "
-        "-vcodec mjpeg "           // 使用 MJPEG 编码器
-        "-qscale:v 2 "             // 质量设置 (1-31，1 最好)
-        "-vf \"format=yuvj420p\" " // 使用完整范围的 YUV 颜色空间
-        "-c:a aac "
-        "-b:a 128k "
-        "-shortest "
-        "\"" +
-        outputPath + "\"";
+    std::string ffmpeg_cmd = "ffmpeg -y "
+                             "-framerate " +
+                             std::to_string(frameRate) +
+                             " "
+                             "-i " +
+                             tempDir +
+                             "/frame_%06d.png "
+                             "-f f32le -ar " +
+                             std::to_string(sampleRate) +
+                             " -ac 1 "
+                             "-i " +
+                             audioPath +
+                             " "
+                             "-vcodec mjpeg "
+                             "-qscale:v 2 "
+                             "-vf \"format=yuvj420p\" "
+                             "-c:a aac "
+                             "-b:a 128k "
+                             "-shortest "
+                             "\"" +
+                             outputPath + "\"";
 
     std::cout << "Running FFmpeg command: " << ffmpeg_cmd << std::endl;
 
     int ret = system(ffmpeg_cmd.c_str());
     if (ret != 0) {
-      // 如果 MJPEG 失败，尝试使用 VP8 编码器
       ffmpeg_cmd = "ffmpeg -y "
                    "-framerate " +
                    std::to_string(frameRate) +
@@ -87,7 +81,7 @@ public:
                    "-i " +
                    audioPath +
                    " "
-                   "-c:v vp8 " // 使用 VP8 编码器
+                   "-c:v vp8 "
                    "-b:v 2M "
                    "-vf \"format=yuv420p\" "
                    "-c:a aac "

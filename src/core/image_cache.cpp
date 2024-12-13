@@ -18,13 +18,11 @@ ImageCache::ImageCache(const std::vector<std::string> &paths, size_t maxMemSize)
   auto firstImage = std::make_shared<cv::Mat>(cv::imread(paths[0]));
   estimatedImageSize = calculateImageSize(firstImage);
 
-  // Initialize window sizes
   int totalWindowSize =
       std::max(3, static_cast<int>(maxMemorySize / estimatedImageSize));
   forwardWindowSize = static_cast<int>(totalWindowSize * 0.7);
   backwardWindowSize = totalWindowSize - forwardWindowSize;
 
-  // Initial preload
   preloadWindow(0, true);
 }
 
@@ -58,7 +56,6 @@ void ImageCache::redistributeMemory() {
 void ImageCache::updateHotspots(int pos, bool directionChanged) {
   auto now = std::chrono::system_clock::now().time_since_epoch().count();
 
-  // Update existing hotspot or create new one
   bool found = false;
   for (auto &hotspot : hotspots) {
     if (std::abs(hotspot.position - pos) <= 2) {
@@ -71,7 +68,6 @@ void ImageCache::updateHotspots(int pos, bool directionChanged) {
 
   if (!found) {
     if (hotspots.size() >= MAX_HOTSPOTS) {
-      // Remove oldest hotspot
       auto oldest =
           std::min_element(hotspots.begin(), hotspots.end(),
                            [](const HotSpot &a, const HotSpot &b) {
@@ -149,7 +145,6 @@ void ImageCache::preloadWindow(int startPos, bool forward) {
   isForward = forward;
   windowStart = startPos;
 
-  // Determine new window range
   std::set<int> newWindowIndices;
   int newWindowEnd = forward
                          ? std::min(startPos + forwardWindowSize, totalImages)
@@ -165,7 +160,6 @@ void ImageCache::preloadWindow(int startPos, bool forward) {
     }
   }
 
-  // Clean up old entries
   auto &primaryCache = forward ? forwardCache : backwardCache;
   auto &secondaryCache = forward ? backwardCache : forwardCache;
 
@@ -179,7 +173,6 @@ void ImageCache::preloadWindow(int startPos, bool forward) {
     }
   }
 
-  // Load missing images
   for (int index : newWindowIndices) {
     if (primaryCache.find(index) == primaryCache.end()) {
       loadImage(index);
@@ -197,7 +190,6 @@ void ImageCache::loadImage(int index) {
   auto newImage = std::make_shared<cv::Mat>(cv::imread(imagePaths[index]));
   size_t newImageSize = calculateImageSize(newImage);
 
-  // Handle memory constraints
   while (currentMemorySize + newImageSize > maxMemorySize) {
     auto &cacheToClean = targetCache.empty()
                              ? (isForward ? backwardCache : forwardCache)
@@ -218,7 +210,6 @@ std::shared_ptr<cv::Mat> ImageCache::getImage(int index) {
   auto &primaryCache = isForward ? forwardCache : backwardCache;
   auto &secondaryCache = isForward ? backwardCache : forwardCache;
 
-  // Try to find in primary cache first
   auto primaryIt = primaryCache.find(index);
   if (primaryIt != primaryCache.end()) {
     primaryIt->second.accessCount++;
@@ -227,7 +218,6 @@ std::shared_ptr<cv::Mat> ImageCache::getImage(int index) {
     return primaryIt->second.image;
   }
 
-  // Try secondary cache
   auto secondaryIt = secondaryCache.find(index);
   if (secondaryIt != secondaryCache.end()) {
     secondaryIt->second.accessCount++;
@@ -236,7 +226,6 @@ std::shared_ptr<cv::Mat> ImageCache::getImage(int index) {
     return secondaryIt->second.image;
   }
 
-  // Need to load the image
   loadImage(index);
   updateHotspots(index, false);
   return isForward ? forwardCache[index].image : backwardCache[index].image;

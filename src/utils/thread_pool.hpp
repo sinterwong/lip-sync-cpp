@@ -1,5 +1,5 @@
 /**
- * @file thread_pool.h
+ * @file thread_pool.hpp
  * @author Sinter Wong (sintercver@gmail.com)
  * @brief
  * @version 0.1
@@ -101,7 +101,6 @@ public:
 
     threads_.clear();
 
-    // 清空任务队列
     std::queue<task> empty;
     {
       std::lock_guard<std::mutex> lock(mutex_);

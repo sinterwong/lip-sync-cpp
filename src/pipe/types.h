@@ -34,6 +34,7 @@ struct OutputPacket {
   uint32_t channels;              // 音频通道数
   int64_t timestamp;              // 时间戳(微秒)
   int64_t sequence;               // 序列号
+  bool isLastChunk;               // 是否是最后一帧
 };
 
 enum class ErrorCode {

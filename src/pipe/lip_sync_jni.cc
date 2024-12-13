@@ -203,6 +203,8 @@ JNIEXPORT jint JNICALL Java_com_example_lipsync_LipSyncSDK_nativeTryGetNext(
       jfieldID channelsField = env->GetFieldID(outputClass, "channels", "I");
       jfieldID timestampField = env->GetFieldID(outputClass, "timestamp", "J");
       jfieldID sequenceField = env->GetFieldID(outputClass, "sequence", "J");
+      jfieldID isLastChunkField =
+          env->GetFieldID(outputClass, "isLastChunk", "Z");
 
       // 设置 Java OutputPacket 的字段
       env->SetObjectField(output, uuidField,
@@ -218,6 +220,7 @@ JNIEXPORT jint JNICALL Java_com_example_lipsync_LipSyncSDK_nativeTryGetNext(
       env->SetIntField(output, channelsField, outPacket.channels);
       env->SetLongField(output, timestampField, outPacket.timestamp);
       env->SetLongField(output, sequenceField, outPacket.sequence);
+      env->SetBooleanField(output, isLastChunkField, outPacket.isLastChunk);
     }
 
     return static_cast<jint>(result);

@@ -30,29 +30,24 @@ private:
     long long lastAccessTime;
   };
 
-  // Cache configurations
   size_t maxMemorySize;
   size_t currentMemorySize = 0;
   size_t estimatedImageSize = 0;
 
-  // Dual direction caches
   std::unordered_map<int, CacheEntry> forwardCache;
   std::unordered_map<int, CacheEntry> backwardCache;
 
-  // Window management
   int windowStart = 0;
   int forwardWindowSize;
   int backwardWindowSize;
   int totalImages;
   bool isForward = true;
 
-  // Hotspot management
   std::vector<HotSpot> hotspots;
   const size_t MAX_HOTSPOTS = 10;
 
   std::vector<std::string> imagePaths;
 
-  // Private methods
   size_t calculateImageSize(const std::shared_ptr<cv::Mat> &img);
   void adjustWindowSizes();
   void redistributeMemory();

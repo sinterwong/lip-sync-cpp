@@ -2,7 +2,6 @@
 #define __LIP_SYNC_FBANK_HPP_
 
 #include "kiss_fftr.h"
-#include <cmath>
 #include <memory>
 #include <random>
 #include <vector>
@@ -41,7 +40,6 @@ public:
   explicit FbankComputer(const FbankOptions &opts);
   ~FbankComputer();
 
-  // Main compute function
   std::vector<std::vector<float>> Compute(const std::vector<float> &waveform);
 
 private:
@@ -52,7 +50,6 @@ private:
     void operator()(kiss_fftr_cfg cfg) { kiss_fftr_free(cfg); }
   };
 
-  // Utility functions
   static int GetNextPowerOfTwo(int x);
   static float MelScale(float freq);
   static float InverseMelScale(float mel_freq);
@@ -63,14 +60,12 @@ private:
                                float high_freq, float vtln_warp_factor,
                                float mel_freq);
 
-  // Window functions
   std::vector<float> GetWindowFunction(int size) const;
   std::vector<float> HammingWindow(int size) const;
   std::vector<float> HanningWindow(int size) const;
   std::vector<float> BlackmanWindow(int size) const;
   std::vector<float> PoveyWindow(int size) const;
 
-  // Processing functions
   std::vector<std::vector<float>>
   GetStridedFrames(const std::vector<float> &waveform) const;
   float GetLogEnergy(const std::vector<float> &frame) const;
@@ -78,14 +73,13 @@ private:
   std::pair<std::vector<std::vector<float>>, std::vector<float>>
   GetMelBanks() const;
 
-  // Member variables
   FbankOptions opts_;
   int frame_length_samples_;
   int frame_shift_samples_;
   int padded_window_size_;
   std::unique_ptr<kiss_fftr_state, KissFFTRDeleter> fft_config_;
   std::vector<std::vector<float>> mel_banks_;
-  std::mt19937 rng_; // Random number generator
+  std::mt19937 rng_;
   std::normal_distribution<float> normal_dist_;
 };
 

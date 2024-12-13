@@ -16,7 +16,6 @@ FeatureExtractor::FeatureExtractor(const FbankConfig &fbankConfig,
     : fbankConfig_(fbankConfig), wenetConfig_(wenetConfig) {}
 
 bool FeatureExtractor::initialize() {
-  // Initialize FbankComputer
   FbankComputer::FbankOptions opts;
   opts.num_mel_bins = fbankConfig_.numMelBins;
   opts.frame_length = fbankConfig_.frameLength;
@@ -29,7 +28,6 @@ bool FeatureExtractor::initialize() {
 
   fbankComputer_ = std::make_unique<FbankComputer>(opts);
 
-  // Initialize WeNet encoder
   AlgoBase encoderAlgoBase;
   encoderAlgoBase.name = "wenet_encoder";
   encoderAlgoBase.modelPath = wenetConfig_.modelPath;
@@ -48,19 +46,16 @@ std::vector<cv::Mat> FeatureExtractor::extractWenetFeatures(
   std::vector<cv::Mat> wenetFeatures;
   const int fbankFeatureLength = fbankFeatures.size();
 
-  // Initialize caches
   cv::Mat attCache = cv::Mat::zeros(3 * 8 * 16 * 128, 1, CV_32F);
   cv::Mat cnnCache = cv::Mat::zeros(3 * 1 * 512 * 14, 1, CV_32F);
   int offset = 100;
 
-  // Process features using sliding window
   int start = 0;
   int end = 0;
 
   while (end < fbankFeatureLength) {
     end = start + wenetConfig_.framesStride;
 
-    // Prepare chunk feature
     cv::Mat chunkFeat;
     if (end <= fbankFeatureLength) {
       chunkFeat = cv::Mat(wenetConfig_.framesStride * wenetConfig_.numFeatures,
@@ -156,23 +151,19 @@ cv::Mat FeatureExtractor::getSlicedFeature(const std::vector<cv::Mat> &feature,
   const int cols = feature[0].cols;
   cv::Mat result(rows * 16, cols, CV_32F);
 
-  // Fill padding and valid data
   int currentRow = 0;
 
-  // Left padding
   for (int i = 0; i < padLeft; ++i) {
     cv::Mat zeroMat = cv::Mat::zeros(rows, cols, CV_32F);
     zeroMat.copyTo(result(cv::Rect(0, currentRow, cols, rows)));
     currentRow += rows;
   }
 
-  // Valid data
   for (int i = validLeft; i < validRight; ++i) {
     feature[i].copyTo(result(cv::Rect(0, currentRow, cols, rows)));
     currentRow += rows;
   }
 
-  // Right padding
   for (int i = 0; i < padRight; ++i) {
     cv::Mat zeroMat = cv::Mat::zeros(rows, cols, CV_32F);
     zeroMat.copyTo(result(cv::Rect(0, currentRow, cols, rows)));

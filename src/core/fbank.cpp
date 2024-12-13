@@ -10,7 +10,6 @@ namespace lip_sync::infer {
 FbankComputer::FbankComputer(const FbankOptions &opts)
     : opts_(opts), rng_(std::random_device{}()), normal_dist_(0.0f, 1.0f) {
 
-  // Validate parameters
   if (opts_.frame_length <= 0 || opts_.frame_shift <= 0) {
     throw std::invalid_argument("Frame length and shift must be positive");
   }
@@ -21,7 +20,6 @@ FbankComputer::FbankComputer(const FbankOptions &opts)
     throw std::invalid_argument("Number of mel bins must be positive");
   }
 
-  // Calculate frame parameters
   frame_length_samples_ =
       static_cast<int>(opts_.frame_length * kMsToSec * opts_.sample_frequency);
   frame_shift_samples_ =
@@ -34,7 +32,6 @@ FbankComputer::FbankComputer(const FbankOptions &opts)
     throw std::runtime_error("Padded window size must be even");
   }
 
-  // Initialize FFT
   kiss_fftr_cfg cfg =
       kiss_fftr_alloc(padded_window_size_, false, nullptr, nullptr);
   if (!cfg) {
@@ -45,7 +42,6 @@ FbankComputer::FbankComputer(const FbankOptions &opts)
     throw std::runtime_error("Failed to allocate FFT config");
   }
 
-  // Initialize mel banks
   auto mel_banks_pair = GetMelBanks();
   mel_banks_ = std::move(mel_banks_pair.first);
 }
@@ -63,7 +59,6 @@ float FbankComputer::InverseMelScale(float mel_freq) {
 float FbankComputer::VtlnWarpFreq(float vtln_low, float vtln_high,
                                   float low_freq, float high_freq,
                                   float vtln_warp_factor, float freq) {
-  // Implementation matching PyTorch's vtln_warp_freq
   float scale = 1.0f / vtln_warp_factor;
   float f_low = vtln_low * std::max(1.0f, vtln_warp_factor);
   float f_high = vtln_high * std::min(1.0f, vtln_warp_factor);
@@ -88,19 +83,16 @@ float FbankComputer::VtlnWarpMelFreq(float vtln_low, float vtln_high,
 
 void FbankComputer::PreprocessFrame(std::vector<float> &frame,
                                     float *log_energy) {
-  // Compute raw energy if needed
   if (opts_.raw_energy && log_energy) {
     *log_energy = GetLogEnergy(frame);
   }
 
-  // Add dither
   if (opts_.dither != 0.0f) {
     for (auto &sample : frame) {
       sample += opts_.dither * normal_dist_(rng_);
     }
   }
 
-  // Remove DC offset
   if (opts_.remove_dc_offset) {
     float mean = 0.0f;
     for (float sample : frame) {
@@ -112,7 +104,6 @@ void FbankComputer::PreprocessFrame(std::vector<float> &frame,
     }
   }
 
-  // Preemphasis
   if (opts_.preemphasis_coefficient != 0.0f) {
     std::vector<float> preemphasized(frame.size());
     preemphasized[0] = frame[0] * (1.0f - opts_.preemphasis_coefficient);
@@ -123,7 +114,6 @@ void FbankComputer::PreprocessFrame(std::vector<float> &frame,
     frame = std::move(preemphasized);
   }
 
-  // Compute non-raw energy if needed
   if (!opts_.raw_energy && log_energy) {
     *log_energy = GetLogEnergy(frame);
   }
@@ -143,21 +133,17 @@ FbankComputer::Compute(const std::vector<float> &waveform) {
     float log_energy = 0.0f;
     PreprocessFrame(frame, opts_.use_energy ? &log_energy : nullptr);
 
-    // Apply window function
     for (int i = 0; i < frame_length_samples_; i++) {
       frame[i] *= window[i];
     }
 
-    // Prepare FFT input
     std::copy(frame.begin(), frame.end(), padded_frame.begin());
     std::fill(padded_frame.begin() + frame_length_samples_, padded_frame.end(),
               0.0f);
 
-    // Perform FFT
     kiss_fftr(fft_config_.get(), padded_frame.data(),
               reinterpret_cast<kiss_fft_cpx *>(fft_out.data()));
 
-    // Compute power spectrum
     std::vector<float> power_spectrum((padded_window_size_ / 2) + 1);
     for (size_t i = 0; i < power_spectrum.size(); i++) {
       float re = fft_out[i].r;
@@ -171,7 +157,6 @@ FbankComputer::Compute(const std::vector<float> &waveform) {
       }
     }
 
-    // Apply mel filterbanks
     std::vector<float> mel_energies(opts_.num_mel_bins);
     for (int i = 0; i < opts_.num_mel_bins; i++) {
       float energy = 0.0f;
@@ -185,7 +170,6 @@ FbankComputer::Compute(const std::vector<float> &waveform) {
       mel_energies[i] = energy;
     }
 
-    // Add energy if requested
     if (opts_.use_energy) {
       if (opts_.htk_compat) {
         mel_energies.push_back(log_energy);
@@ -197,12 +181,10 @@ FbankComputer::Compute(const std::vector<float> &waveform) {
     features.push_back(std::move(mel_energies));
   }
 
-  // Subtract mean if requested
   if (opts_.subtract_mean && !features.empty()) {
     size_t feat_dim = features[0].size();
     std::vector<float> means(feat_dim, 0.0f);
 
-    // Compute means
     for (const auto &feature : features) {
       for (size_t i = 0; i < feat_dim; i++) {
         means[i] += feature[i];
@@ -212,7 +194,6 @@ FbankComputer::Compute(const std::vector<float> &waveform) {
       mean /= features.size();
     }
 
-    // Subtract means
     for (auto &feature : features) {
       for (size_t i = 0; i < feat_dim; i++) {
         feature[i] -= means[i];
@@ -243,7 +224,6 @@ FbankComputer::GetMelBanks() const {
   std::vector<std::vector<float>> mel_filters(
       opts_.num_mel_bins, std::vector<float>(padded_window_size_ / 2 + 1));
 
-  // Calculate FFT bin frequencies
   std::vector<float> fft_freqs(padded_window_size_ / 2 + 1);
   for (size_t i = 0; i < fft_freqs.size(); i++) {
     fft_freqs[i] = i * opts_.sample_frequency / padded_window_size_;
@@ -254,7 +234,6 @@ FbankComputer::GetMelBanks() const {
     float center_mel = mel_low + (i + 1) * mel_freq_delta;
     float right_mel = mel_low + (i + 2) * mel_freq_delta;
 
-    // Apply VTLN warping if needed
     if (opts_.vtln_warp != 1.0f) {
       left_mel =
           VtlnWarpMelFreq(opts_.vtln_low, opts_.vtln_high, opts_.low_freq,
@@ -269,7 +248,6 @@ FbankComputer::GetMelBanks() const {
 
     center_freqs[i] = InverseMelScale(center_mel);
 
-    // Create triangular filters
     for (size_t j = 0; j < fft_freqs.size(); j++) {
       float mel = MelScale(fft_freqs[j]);
       float weight = 0.0f;
@@ -316,20 +294,16 @@ FbankComputer::GetStridedFrames(const std::vector<float> &waveform) const {
     int start_sample = i * frame_shift_samples_;
 
     if (opts_.snip_edges) {
-      // Just copy the samples directly
       for (int j = 0; j < frame_length_samples_; j++) {
         frame[j] = waveform[start_sample + j];
       }
     } else {
-      // Handle edge effects by reflection
       for (int j = 0; j < frame_length_samples_; j++) {
         int sample_index = start_sample + j - frame_length_samples_ / 2;
 
         if (sample_index < 0) {
-          // Reflect across the beginning
           sample_index = -sample_index - 1;
         } else if (sample_index >= num_samples) {
-          // Reflect across the end
           sample_index = 2 * num_samples - sample_index - 1;
         }
 
@@ -357,7 +331,6 @@ float FbankComputer::GetLogEnergy(const std::vector<float> &frame) const {
   return std::log(energy);
 }
 
-// Window function implementations
 std::vector<float> FbankComputer::GetWindowFunction(int size) const {
   if (opts_.window_type == "hamming") {
     return HammingWindow(size);

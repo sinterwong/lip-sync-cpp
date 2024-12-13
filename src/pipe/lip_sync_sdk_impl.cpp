@@ -36,7 +36,6 @@ ErrorCode LipSyncSDKImpl::initialize(const SDKConfig &config) {
       config.frameDir, config.faceInfoPath, config.maxCacheSize);
 
   workers.start(config.numWorkers);
-  // 初始化模型实例，数量与线程数相同
   for (int i = 0; i < config.numWorkers; ++i) {
     auto model = std::make_unique<ModelInstance>(
         AlgoBase{.name = "wavlip-" + std::to_string(i),
@@ -53,7 +52,6 @@ ErrorCode LipSyncSDKImpl::initialize(const SDKConfig &config) {
   isRunning.store(true);
   inputProcessThread = std::thread(&LipSyncSDKImpl::inputProcessLoop, this);
 
-  // 启动工作线程池，每个线程执行processLoop
   for (int i = 0; i < config.numWorkers; ++i) {
     workers.submit([this]() { processLoop(); });
   }
@@ -80,18 +78,15 @@ ErrorCode LipSyncSDKImpl::terminate() {
     return ErrorCode::SUCCESS;
   }
 
-  // 等待输入处理线程结束
   if (inputProcessThread.joinable()) {
     inputProcessThread.join();
   }
 
-  // 清理所有队列
   inputQueue.clear();
   processingQueue.clear();
   taskQueue.clear();
   outputQueue.clear();
 
-  // 停止工作线程池
   workers.stop();
 
   return ErrorCode::SUCCESS;
@@ -138,7 +133,6 @@ void LipSyncSDKImpl::inputProcessLoop() {
 
       unit.originImage = image;
 
-      // 分配模型实例并创建任务
       size_t modelIndex = i % modelInstances.size();
       Task task{.unit = std::move(unit), .modelIndex = modelIndex};
       taskQueue.push(std::move(task));
@@ -150,14 +144,13 @@ void LipSyncSDKImpl::processLoop() {
   while (isRunning) {
     auto task = taskQueue.wait_pop_for(std::chrono::milliseconds(100));
     if (!task) {
-      std::this_thread::yield(); // 让出CPU
+      std::this_thread::yield();
       continue;
     }
 
     bool acquired = false;
     size_t actualModelIndex = task->modelIndex;
 
-    // 如果预期的模型实例忙，尝试其他模型实例
     for (size_t i = 0; i < modelInstances.size(); ++i) {
       actualModelIndex = (task->modelIndex + i) % modelInstances.size();
       if (modelInstances[actualModelIndex]->tryAcquire()) {
@@ -167,15 +160,13 @@ void LipSyncSDKImpl::processLoop() {
     }
 
     if (!acquired) {
-      // 如果所有模型都忙，将任务重新放回队列
       taskQueue.push(std::move(*task));
-      std::this_thread::yield(); // 让出CPU
+      std::this_thread::yield();
       continue;
     }
 
     auto *model = modelInstances[actualModelIndex]->get();
 
-    // 执行推理
     AlgoInput algoInput;
     WeNetInput wenetInput{.audioFeature = task->unit.audioChunk,
                           .image = task->unit.faceData.xData};
@@ -191,7 +182,6 @@ void LipSyncSDKImpl::processLoop() {
       continue;
     }
 
-    // 释放当前模型实例
     modelInstances[actualModelIndex]->release();
 
     auto *output = algoOutput.getParams<WeNetOutput>();
@@ -213,6 +203,7 @@ void LipSyncSDKImpl::processLoop() {
     outputPacket.audioData = task->unit.audioSegment;
     outputPacket.sampleRate = 16000;
     outputPacket.channels = 1;
+    outputPacket.isLastChunk = task->unit.isLastChunk;
     cv::imencode(".png", postProcessedFrame, outputPacket.frameData);
 
     outputQueue.push(std::move(outputPacket));
