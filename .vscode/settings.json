@@ -4,12 +4,12 @@
     "CMAKE_BUILD_TYPE": "${buildType}",
     "CMAKE_INSTALL_PREFIX": "${workspaceFolder}/install",
   },
-  "cmake.generator": "Ninja",
+  "cmake.generator": "Visual Studio 17 2022",
   "cmake.exportCompileCommandsFile": true,
   "cmake.environment": {
     "PATH": "${env:PATH}:/home/sinter/softwares/miniconda3/bin",
     // "CONAN_HOME": "${workspaceFolder}/build/.conan2",
-    "ANDROID_NDK": "/home/sinter/softwares/android-ndk-r27c"
+    // "ANDROID_NDK": "/home/sinter/softwares/android-ndk-r27c"
   },
   "cmake.configureArgs": [
     // "-DCMAKE_TOOLCHAIN_FILE=/home/sinter/softwares/android-ndk-r27c/build/cmake/android.toolchain.cmake",

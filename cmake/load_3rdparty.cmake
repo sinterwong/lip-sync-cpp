@@ -64,6 +64,12 @@ MACRO(LOAD_OPENCV)
             ${OpenCV_LIBRARY_DIRS}/libopencv_video.so
             ${OpenCV_LIBRARY_DIRS}/libopencv_videoio.so
         )
+    ELSEIF(TARGET_OS STREQUAL "Windows")
+        SET(OpenCV_INCLUDE_DIRS ${OPENCV_HOME}/build/include)
+        SET(OpenCV_LIBRARY_DIRS ${OPENCV_HOME}/build/x64/vc16/lib)
+        SET(OpenCV_LIBS
+            ${OpenCV_LIBRARY_DIRS}/opencv_world4100.lib
+        )
     ELSE()
         SET(OpenCV_LIBRARY_DIR ${OPENCV_HOME}/lib)
         LIST(APPEND CMAKE_PREFIX_PATH ${OpenCV_LIBRARY_DIR}/cmake)

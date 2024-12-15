@@ -181,7 +181,8 @@ int main(int argc, char **argv) {
   auto audio = audioProcessor.readAudio(audioPath.string());
   auto preprocessedAudio = audioProcessor.preprocess(audio);
 
-  WeNetConfig wenetConfig{.modelPath = wenetEncoderPath.string()};
+  WeNetConfig wenetConfig;
+  wenetConfig.modelPath = wenetEncoderPath.string();
   FeatureExtractor featureExtractor(FbankConfig{}, wenetConfig);
 
   if (!featureExtractor.initialize()) {

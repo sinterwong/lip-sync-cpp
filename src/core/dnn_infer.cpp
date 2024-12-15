@@ -26,8 +26,21 @@ bool AlgoInference::initialize() {
         GraphOptimizationLevel::ORT_ENABLE_ALL);
 
     // create session
-    session = std::make_unique<Ort::Session>(*env, mParams.modelPath.c_str(),
-                                             sessionOptions);
+#ifdef _WIN32
+    // Windows: Convert string to wstring for UTF-16 support
+    size_t size = mParams.modelPath.length();
+    session = std::make_unique<Ort::Session>(
+        *env, 
+        mParams.modelPath.c_str(),
+        size,  // Pass the size of the model path string
+        sessionOptions);
+#else
+    // Non-Windows platforms can use the original code
+    session = std::make_unique<Ort::Session>(
+        *env, 
+        mParams.modelPath.c_str(),
+        sessionOptions);
+#endif
 
     // create memory info
     memoryInfo = std::make_unique<Ort::MemoryInfo>(

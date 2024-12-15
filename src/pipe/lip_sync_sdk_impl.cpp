@@ -24,7 +24,8 @@ using namespace lip_sync::infer;
 LipSyncSDKImpl::LipSyncSDKImpl() : isRunning(false) {}
 
 ErrorCode LipSyncSDKImpl::initialize(const SDKConfig &config) {
-  WeNetConfig wenetConfig{.modelPath = config.encoderModelPath};
+  WeNetConfig wenetConfig;
+  wenetConfig.modelPath = config.encoderModelPath;
   featureExtractor =
       std::make_unique<FeatureExtractor>(FbankConfig{}, wenetConfig);
   if (!featureExtractor->initialize()) {
@@ -38,9 +39,10 @@ ErrorCode LipSyncSDKImpl::initialize(const SDKConfig &config) {
   workers.start(config.numWorkers);
   // 初始化模型实例，数量与线程数相同
   for (int i = 0; i < config.numWorkers; ++i) {
-    auto model = std::make_unique<ModelInstance>(
-        AlgoBase{.name = "wavlip-" + std::to_string(i),
-                 .modelPath = config.wavLipModelPath});
+    AlgoBase algoBase;
+    algoBase.name = "wavlip-" + std::to_string(i);
+    algoBase.modelPath = config.wavLipModelPath;
+    auto model = std::make_unique<ModelInstance>(algoBase);
 
     if (!model->initialize()) {
       LOGGER_ERROR("Failed to initialize wav to lip model {}", i);
@@ -139,7 +141,9 @@ void LipSyncSDKImpl::inputProcessLoop() {
 
       // 分配模型实例并创建任务
       size_t modelIndex = i % modelInstances.size();
-      Task task{.unit = std::move(unit), .modelIndex = modelIndex};
+      Task task;
+      task.unit = std::move(unit);
+      task.modelIndex = modelIndex;
       taskQueue.push(std::move(task));
     }
   }
@@ -176,8 +180,9 @@ void LipSyncSDKImpl::processLoop() {
 
     // 执行推理
     AlgoInput algoInput;
-    WeNetInput wenetInput{.audioFeature = task->unit.audioChunk,
-                          .image = task->unit.faceData.xData};
+    WeNetInput wenetInput;
+    wenetInput.audioFeature = task->unit.audioChunk;
+    wenetInput.image = task->unit.faceData.xData;
     algoInput.setParams(wenetInput);
 
     AlgoOutput algoOutput;

@@ -6,6 +6,9 @@
 #include <stdexcept>
 
 namespace lip_sync::infer {
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 FbankComputer::FbankComputer(const FbankOptions &opts)
     : opts_(opts), rng_(std::random_device{}()), normal_dist_(0.0f, 1.0f) {
