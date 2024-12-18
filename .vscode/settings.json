@@ -4,7 +4,8 @@
     "CMAKE_BUILD_TYPE": "${buildType}",
     "CMAKE_INSTALL_PREFIX": "${workspaceFolder}/install",
   },
-  "cmake.generator": "Visual Studio 17 2022",
+  // "cmake.generator": "Visual Studio 17 2022",
+  "cmake.generator": "Ninja",
   "cmake.exportCompileCommandsFile": true,
   "cmake.environment": {
     "PATH": "${env:PATH}:/home/sinter/softwares/miniconda3/bin",
