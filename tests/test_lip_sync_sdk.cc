@@ -1,5 +1,5 @@
 #include "audio/audio_processor.hpp"
-#include "lip_sync/lip_sync_sdk.h"
+#include "lip_sync/lip_sync_sdk.hpp"
 #include "logger/logger.hpp"
 #include "sndfile.h"
 #include <filesystem>

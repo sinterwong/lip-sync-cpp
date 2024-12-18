@@ -16,7 +16,7 @@
 #include "core/feature_extractor.hpp"
 #include "core/image_cycler.hpp"
 #include "core/types.hpp"
-#include "types.h"
+#include "lip_sync_types.h"
 #include "utils/thread_pool.hpp"
 #include "utils/thread_safe_queue.hpp"
 #include "wav_lip_manager.hpp"

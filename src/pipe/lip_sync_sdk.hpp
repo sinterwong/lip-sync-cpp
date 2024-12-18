@@ -1,6 +1,17 @@
-#ifndef __LIP_SYNC_SDK_H__
-#define __LIP_SYNC_SDK_H__
-#include "types.h"
+/**
+ * @file lip_sync_sdk.hpp
+ * @author Sinter Wong (sintercver@gmail.com)
+ * @brief
+ * @version 0.1
+ * @date 2024-11-30
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
+
+#ifndef __LIP_SYNC_SDK_HPP__
+#define __LIP_SYNC_SDK_HPP__
+#include "lip_sync_types.h"
 #include <memory>
 #include <string>
 

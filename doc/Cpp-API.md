@@ -1,6 +1,6 @@
 # LipSync SDK C++ 接口文档
 
-本接口文档基于 `lip_sync_sdk.h` 和 `types.h` 文件，描述了 LipSync SDK 的 C++ 接口使用方法。
+本接口文档基于 `lip_sync_sdk.hpp` 和 `lip_sync_types.h` 文件，描述了 LipSync SDK 的 C++ 接口使用方法。
 
 ## 1. 概述
 

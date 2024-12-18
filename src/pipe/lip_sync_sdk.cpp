@@ -1,4 +1,15 @@
-#include "lip_sync_sdk.h"
+/**
+ * @file lip_sync_sdk.cpp
+ * @author Sinter Wong (sintercver@gmail.com)
+ * @brief
+ * @version 0.1
+ * @date 2024-11-30
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
+
+#include "lip_sync_sdk.hpp"
 #include "lip_sync_sdk_impl.hpp"
 #include <string>
 

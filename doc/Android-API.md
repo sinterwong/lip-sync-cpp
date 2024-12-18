@@ -1,6 +1,6 @@
 # LipSync SDK Android 接口文档
 
-本接口文档基于 `lip_sync_jni.h`，`lip_sync_sdk.h` 和 `types.h` 文件，讲述 LipSync SDK 在 Android 平台上的 JNI 接口使用方法。
+本接口文档基于 `lip_sync_jni.h`，`lip_sync_sdk.h` 和 `lip_sync_types.h` 文件，讲述 LipSync SDK 在 Android 平台上的 JNI 接口使用方法。
 
 ## 1. 概述
 
